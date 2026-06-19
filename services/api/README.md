@@ -59,6 +59,15 @@ python -m uvicorn services.api.app.main:app --reload
 
 The health endpoint is available at `GET /health`.
 
+Learning workflow endpoints are available under `/learning`:
+
+- `POST /learning/users`: register a learner.
+- `GET /learning/lessons`: list published lessons.
+- `POST /learning/sessions`: start or restart a lesson session.
+- `GET /learning/sessions/{session_id}/exercise`: fetch the current exercise.
+- `POST /learning/sessions/{session_id}/answers`: submit an answer.
+- `GET /learning/users/{user_id}/progress`: fetch learner progress.
+
 ## Verification
 
 Run the focused API tests with:
