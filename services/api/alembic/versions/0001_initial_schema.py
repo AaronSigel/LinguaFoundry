@@ -134,7 +134,12 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("lesson_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("status", sa.String(length=32), nullable=False),
+        sa.Column(
+            "status",
+            sa.String(length=32),
+            server_default=sa.text("'not_started'"),
+            nullable=False,
+        ),
         sa.Column("completed_exercises", sa.Integer(), server_default=sa.text("0"), nullable=False),
         sa.Column("total_exercises", sa.Integer(), server_default=sa.text("0"), nullable=False),
         sa.Column("last_attempt_at", sa.DateTime(timezone=True), nullable=True),
