@@ -30,6 +30,11 @@ PYTHONPATH=packages/core:. pytest services/bot/tests
 mistake review command. `/review`, `/mistakes`, and `/repeat_errors` render the
 learner's SRS-lite queue from `linguafoundry_core.review`.
 
+## Progress Command
+
+`/progress` registers or resolves the Telegram learner through the backend API
+and shows aggregate learning stats from `/learning/users/{user_id}/progress/stats`.
+
 ## Verification
 
 From the repository root:
