@@ -14,6 +14,8 @@ From the repository root:
 
 ```sh
 pytest services/bot/tests packages/core/tests/test_review.py
+```
+
 ## Configuration
 
 The bot reads configuration from environment variables or a local `.env` file:

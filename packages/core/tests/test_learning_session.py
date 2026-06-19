@@ -2,16 +2,14 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from linguafoundry_core import (
 from linguafoundry_core.learning import (
     Exercise,
     LearningSessionManager,
     Lesson,
-    calculate_review_due_at,
     SessionNotFoundError,
     SessionStatus,
+    calculate_review_due_at,
 )
-from linguafoundry_core.learning import Exercise, Lesson
 
 
 FROZEN_NOW = datetime(2026, 6, 19, 12, 0, tzinfo=timezone.utc)
@@ -176,7 +174,6 @@ def test_complete_lesson_stops_exercise_delivery() -> None:
     lesson = Lesson(
         id="intro",
         title="Intro",
-        exercises=(Exercise(id="one", prompt="One", correct_answers=("one",)),),
         exercises=(
             Exercise(
                 id="one",
