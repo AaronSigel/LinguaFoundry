@@ -18,7 +18,7 @@ class Settings:
     database_url: str = field(
         default_factory=lambda: os.getenv(
             "DATABASE_URL",
-            "postgresql+asyncpg://linguafoundry:linguafoundry@localhost:5432/linguafoundry",
+            "postgresql+asyncpg://localhost:5432/linguafoundry",
         )
     )
     database_echo: bool = field(default_factory=lambda: _env_bool("DATABASE_ECHO"))
