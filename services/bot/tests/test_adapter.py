@@ -24,9 +24,7 @@ def test_start_command_sends_welcome_message() -> None:
     telegram = RecordingTelegramClient()
     bot = TelegramBotAdapter(telegram, HealthyApiClient())
 
-    handled = bot.process_update(
-        {"message": {"chat": {"id": 123}, "text": "/start"}}
-    )
+    handled = bot.process_update({"message": {"chat": {"id": 123}, "text": "/start"}})
 
     assert handled is True
     assert telegram.sent_messages == [
@@ -38,9 +36,7 @@ def test_help_command_lists_available_commands() -> None:
     telegram = RecordingTelegramClient()
     bot = TelegramBotAdapter(telegram, HealthyApiClient())
 
-    handled = bot.process_update(
-        {"message": {"chat": {"id": 123}, "text": "/help"}}
-    )
+    handled = bot.process_update({"message": {"chat": {"id": 123}, "text": "/help"}})
 
     assert handled is True
     assert telegram.sent_messages == [
@@ -71,9 +67,7 @@ def test_non_command_text_is_ignored() -> None:
     telegram = RecordingTelegramClient()
     bot = TelegramBotAdapter(telegram, HealthyApiClient())
 
-    handled = bot.process_update(
-        {"message": {"chat": {"id": 123}, "text": "hello"}}
-    )
+    handled = bot.process_update({"message": {"chat": {"id": 123}, "text": "hello"}})
 
     assert handled is False
     assert telegram.sent_messages == []
@@ -83,9 +77,7 @@ def test_start_command_reports_api_connectivity_failure() -> None:
     telegram = RecordingTelegramClient()
     bot = TelegramBotAdapter(telegram, UnreachableApiClient())
 
-    handled = bot.process_update(
-        {"message": {"chat": {"id": 123}, "text": "/start"}}
-    )
+    handled = bot.process_update({"message": {"chat": {"id": 123}, "text": "/start"}})
 
     assert handled is True
     assert telegram.sent_messages == [

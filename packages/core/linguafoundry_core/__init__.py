@@ -1,28 +1,14 @@
-"""Core domain logic for LinguaFoundry."""
+"""Core domain model and learning flow primitives for LinguaFoundry."""
 
 from linguafoundry_core.learning import (
     AnswerResult,
-    Exercise,
     InMemoryLearningSessionStore,
     LearningSessionManager,
-    Lesson,
     SessionNotFoundError,
     SessionState,
     SessionStatus,
 )
-
-__all__ = [
-    "AnswerResult",
-    "Exercise",
-    "InMemoryLearningSessionStore",
-    "LearningSessionManager",
-    "Lesson",
-    "SessionNotFoundError",
-    "SessionState",
-    "SessionStatus",
-"""Core domain model for LinguaFoundry learning flows."""
-
-from .models import (
+from linguafoundry_core.models import (
     Attempt,
     AttemptResult,
     CEFRLevel,
@@ -37,15 +23,21 @@ from .models import (
 )
 
 __all__ = [
+    "AnswerResult",
     "Attempt",
     "AttemptResult",
     "CEFRLevel",
     "CompletionStatus",
     "Exercise",
     "ExerciseType",
+    "InMemoryLearningSessionStore",
     "Language",
     "LearningSession",
+    "LearningSessionManager",
     "Lesson",
     "Progress",
+    "SessionNotFoundError",
+    "SessionState",
+    "SessionStatus",
     "User",
 ]

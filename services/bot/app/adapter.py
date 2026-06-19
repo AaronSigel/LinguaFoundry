@@ -9,9 +9,7 @@ from services.bot.app.api_client import ApiClient, ApiClientError
 from services.bot.app.telegram import IncomingMessage, TelegramClient, parse_message
 
 
-WELCOME_TEXT = (
-    "Welcome to LinguaFoundry. Use /help to see available commands."
-)
+WELCOME_TEXT = "Welcome to LinguaFoundry. Use /help to see available commands."
 HELP_TEXT = (
     "Available commands:\n"
     "/start - start using LinguaFoundry\n"

@@ -1,11 +1,13 @@
 import pytest
 
 from linguafoundry_core import (
-    Exercise,
     LearningSessionManager,
-    Lesson,
     SessionNotFoundError,
     SessionStatus,
+)
+from linguafoundry_core.learning import (
+    Exercise,
+    Lesson,
 )
 
 
