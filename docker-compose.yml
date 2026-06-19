@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-linguafoundry}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-linguafoundry}
+      POSTGRES_DB: ${POSTGRES_DB:-linguafoundry}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: python:3.12-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-linguafoundry}:${POSTGRES_PASSWORD:-linguafoundry}@db:5432/${POSTGRES_DB:-linguafoundry}
+      DATABASE_ECHO: ${DATABASE_ECHO:-false}
+    command: >
+      sh -c "python -m pip install --no-cache-dir -e .
+      && alembic -c services/api/alembic.ini upgrade head
+      && python -m uvicorn services.api.app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  bot:
+    image: python:3.12-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      API_BASE_URL: http://api:8000
+      TELEGRAM_POLL_TIMEOUT: ${TELEGRAM_POLL_TIMEOUT:-30}
+    command: >
+      sh -c "python -m pip install --no-cache-dir -e .
+      && python -m services.bot.app.main"
+    depends_on:
+      api:
+        condition: service_started
+
+volumes:
+  postgres-data:

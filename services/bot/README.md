@@ -15,7 +15,7 @@ The bot supports a dependency-free Telegram polling flow:
 Run locally after setting `TELEGRAM_BOT_TOKEN`:
 
 ```sh
-PYTHONPATH=packages/core:. python -m services.bot.app
+PYTHONPATH=packages/core:. python -m services.bot.app.main
 ```
 
 Run focused tests with:
