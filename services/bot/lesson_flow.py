@@ -58,16 +58,25 @@ class TelegramLessonFlow:
         try:
             lesson = self._catalog.get(lesson_id)
         except LessonNotFoundError:
-            return f"Lesson '{lesson_id}' was not found.\n\n{self._format_lesson_list()}"
+            return (
+                f"Lesson '{lesson_id}' was not found.\n\n"
+                f"{self._format_lesson_list()}"
+            )
 
         session = self._sessions.start_lesson(lesson)
         self._chat_sessions[chat_id] = session.id
-        return f"Lesson started: {lesson.title}\n\n{self._format_current_exercise(session.id)}"
+        return (
+            f"Lesson started: {lesson.title}\n\n"
+            f"{self._format_current_exercise(session.id)}"
+        )
 
     def _submit_answer(self, chat_id: int, answer: str) -> str:
         session_id = self._chat_sessions.get(chat_id)
         if session_id is None:
-            return "Choose a lesson before sending an answer.\n\n" + self._format_lesson_list()
+            return (
+                "Choose a lesson before sending an answer.\n\n"
+                + self._format_lesson_list()
+            )
 
         result = self._sessions.submit_answer(session_id, answer)
         lines = ["Correct." if result.correct else "Incorrect."]

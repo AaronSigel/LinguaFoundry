@@ -67,7 +67,9 @@ def _read_lessons(payload: dict[str, Any]) -> tuple[Lesson, ...]:
 
 
 def _read_lesson(payload: dict[str, Any]) -> Lesson:
-    exercises = sorted(payload.get("exercises", []), key=lambda item: item.get("order", 0))
+    exercises = sorted(
+        payload.get("exercises", []), key=lambda item: item.get("order", 0)
+    )
     return Lesson(
         id=payload["id"],
         title=payload["title"],
