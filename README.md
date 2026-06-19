@@ -18,8 +18,8 @@ service includes an initial PostgreSQL database layer and Alembic migrations.
 ## Getting Started
 
 1. Copy `.env.example` to `.env` for local configuration.
-2. Read `AGENTS.md` before making automated changes.
-3. Keep changes scoped to the relevant service, package, or documentation area.
+1. Read `AGENTS.md` before making automated changes.
+1. Keep changes scoped to the relevant service, package, or documentation area.
 
 No application run command is available in the scaffold state. CI quality gates
 install `requirements-dev.txt` and run Markdown formatting checks, Python
@@ -28,20 +28,20 @@ scan.
 
 Install API database dependencies and run migrations with:
 
-```sh
+```shell
 python -m pip install -r services/api/requirements.txt
 alembic -c services/api/alembic.ini upgrade head
 ```
 
 Run the API service locally with:
 
-```sh
+```shell
 python -m uvicorn services.api.app.main:app --reload
 ```
 
 Run the focused API tests with:
 
-```sh
+```shell
 pytest services/api/tests
 ```
 
