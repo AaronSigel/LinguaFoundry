@@ -51,7 +51,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mdformat --check .
+          find . -path ./.git -prune -o \
+            -path './.github/ISSUE_TEMPLATE/*' -prune -o \
+            -name '*.md' -print0 \
+            | xargs -0 mdformat --check
 
       - name: Run Ruff when Python files exist
         shell: bash
