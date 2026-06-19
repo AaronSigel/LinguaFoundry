@@ -22,6 +22,8 @@ Run focused tests with:
 
 ```sh
 PYTHONPATH=packages/core:. pytest services/bot/tests
+```
+
 ## Review Command
 
 `services.bot.review` provides framework-agnostic handlers for the Telegram

@@ -122,6 +122,18 @@ class ProgressResponse(BaseModel):
     completed_at: datetime | None
 
 
+class ProgressStatsResponse(BaseModel):
+    """Aggregate progress statistics for a learner."""
+
+    user_id: UUID
+    answer_count: int
+    accuracy: float
+    accuracy_percent: float
+    completed_lessons: int
+    active_repetitions: int
+    last_activity_at: datetime | None
+
+
 @router.post(
     "/users",
     response_model=UserResponse,
@@ -337,6 +349,60 @@ async def get_progress(
     ]
 
 
+@router.get(
+    "/users/{user_id}/progress/stats",
+    response_model=ProgressStatsResponse,
+)
+async def get_progress_stats(
+    user_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> ProgressStatsResponse:
+    """Return aggregate learner progress statistics."""
+
+    await _get_user(session, user_id)
+
+    answer_count, correct_answers = (
+        await session.execute(
+            select(
+                func.count(Attempt.id),
+                func.count(Attempt.id).filter(Attempt.is_correct.is_(True)),
+            ).where(
+                Attempt.user_id == user_id,
+                Attempt.is_correct.is_not(None),
+            )
+        )
+    ).one()
+    last_attempt_at = await session.scalar(
+        select(func.max(Attempt.attempted_at)).where(Attempt.user_id == user_id)
+    )
+    completed_lessons = await session.scalar(
+        select(func.count(Progress.id)).where(
+            Progress.user_id == user_id,
+            Progress.status == "completed",
+        )
+    )
+    active_repetitions = await session.scalar(
+        select(func.count(Progress.id)).where(
+            Progress.user_id == user_id,
+            Progress.status == "in_progress",
+        )
+    )
+    last_progress_at = await session.scalar(
+        select(func.max(Progress.last_attempt_at)).where(Progress.user_id == user_id)
+    )
+
+    accuracy = _accuracy(correct_answers or 0, answer_count or 0)
+    return ProgressStatsResponse(
+        user_id=user_id,
+        answer_count=answer_count or 0,
+        accuracy=accuracy,
+        accuracy_percent=accuracy * 100,
+        completed_lessons=completed_lessons or 0,
+        active_repetitions=active_repetitions or 0,
+        last_activity_at=_latest_datetime(last_attempt_at, last_progress_at),
+    )
+
+
 async def _scalar_or_none(
     session: AsyncSession,
     statement: Select[tuple[ModelT]],
@@ -464,3 +530,13 @@ def _accepted_answers(expected_answer: dict[str, object] | None) -> list[object]
 
 def _normalize_answer(answer: str) -> str:
     return " ".join(answer.casefold().strip().split())
+
+
+def _accuracy(correct_answers: int, answer_count: int) -> float:
+    if answer_count == 0:
+        return 0.0
+    return correct_answers / answer_count
+
+
+def _latest_datetime(*values: datetime | None) -> datetime | None:
+    return max((value for value in values if value is not None), default=None)
