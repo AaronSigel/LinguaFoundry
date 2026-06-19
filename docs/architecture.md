@@ -2,13 +2,14 @@
 
 LinguaFoundry is organized as a monorepo for a Telegram-first MVP.
 
-The current repository state is intentionally documentation-first. Service and
-package directories define ownership boundaries for future implementation.
+The current repository state is intentionally lightweight. Service and package
+directories define ownership boundaries for implementation.
 
 ## Services
 
 - `services/bot`: Telegram-facing entrypoint for user interaction.
-- `services/api`: HTTP/API boundary and PostgreSQL-backed persistence layer.
+- `services/api`: FastAPI backend skeleton with health checks and environment
+  configuration.
 
 ## Packages
 

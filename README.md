@@ -6,11 +6,13 @@ Telegram-first interface, SRS practice, and extensible language packs.
 This repository is currently a scaffold for agent-assisted development. It
 defines the intended package boundaries and baseline operating rules. The API
 service includes an initial PostgreSQL database layer and Alembic migrations.
+defines the intended package boundaries and baseline operating rules, and
+includes an initial FastAPI skeleton for the API service.
 
 ## Repository Layout
 
 - `services/bot`: Telegram-facing entrypoint for the Stage 1 MVP.
-- `services/api`: Placeholder for a future API service.
+- `services/api`: FastAPI backend skeleton with a health endpoint.
 - `packages/core`: Shared domain logic, including SRS behavior.
 - `packages/lang-packs`: Language content schemas and language packs.
 - `docs`: Project documentation and development notes.
@@ -31,6 +33,20 @@ Install API database dependencies and run migrations with:
 ```bash
 python -m pip install -r services/api/requirements.txt
 alembic -c services/api/alembic.ini upgrade head
+CI quality gates install `requirements-dev.txt` and run Markdown formatting
+checks, Python linting when Python files exist, tests when tests exist, and a
+committed-secret scan.
+
+Run the API service locally with:
+
+```sh
+python -m uvicorn services.api.app.main:app --reload
+```
+
+Run the focused API tests with:
+
+```sh
+pytest services/api/tests
 ```
 
 ## Development Scope
