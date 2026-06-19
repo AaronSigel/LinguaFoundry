@@ -1,5 +1,8 @@
 # CI-only quality tools for the scaffold state.
 detect-secrets>=1.5,<2
+fastapi>=0.115,<1
 mdformat>=0.7,<1
+pydantic-settings>=2,<3
 pytest>=8,<9
 ruff>=0.6,<1
+uvicorn[standard]>=0.30,<1

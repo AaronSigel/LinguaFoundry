@@ -2,8 +2,8 @@
 
 ## Current State
 
-LinguaFoundry is in scaffold state. There is no Python package metadata,
-dependency lockfile, runnable service, or automated test suite yet.
+LinguaFoundry is in scaffold state with an initial FastAPI API service. There is
+no Python package build metadata or dependency lockfile yet.
 
 ## Local Setup
 
@@ -14,9 +14,14 @@ dependency lockfile, runnable service, or automated test suite yet.
 
 ## Running
 
-No application entrypoint exists yet. When a service becomes runnable, document
-the command in the service README and mirror the common path in the root
-README.
+Run the API service locally with:
+
+```sh
+python -m uvicorn services.api.app.main:app --reload
+```
+
+Service-specific commands should be documented in the relevant service README
+and mirrored in the root README when they are common development paths.
 
 ## Testing and Quality
 
@@ -28,10 +33,15 @@ The scaffold CI installs `requirements-dev.txt` and runs these baseline gates:
 - `detect-secrets scan --all-files` with a failing check for potential committed
   secrets.
 
-No application test suite exists yet. When code is added, prefer focused tests
-close to the changed package or service. Document configured commands such as
-`pytest`, `ruff`, formatting, and type checking before relying on them in
-automation.
+Run the focused API tests with:
+
+```sh
+pytest services/api/tests
+```
+
+When more code is added, prefer focused tests close to the changed package or
+service. Document configured commands such as `pytest`, `ruff`, formatting, and
+type checking before relying on them in automation.
 
 ## Scope Rules
 
