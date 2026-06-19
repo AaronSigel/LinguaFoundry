@@ -25,8 +25,8 @@ assignees: ""
 
 ## Acceptance Criteria
 
-- [ ]
-- [ ]
+- [ ] Expected behavior:
+- [ ] Verification:
 
 ## Additional Context
 

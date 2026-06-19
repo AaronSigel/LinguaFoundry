@@ -19,8 +19,8 @@ not include runnable application code yet.
 
 1. Copy `.env.example` to `.env` for local configuration when services are
    implemented.
-2. Read `AGENTS.md` before making automated changes.
-3. Keep changes scoped to the relevant service, package, or documentation area.
+1. Read `AGENTS.md` before making automated changes.
+1. Keep changes scoped to the relevant service, package, or documentation area.
 
 No install, test, or run command is available in the scaffold state. Add those
 commands alongside the first implementation that requires them, and document

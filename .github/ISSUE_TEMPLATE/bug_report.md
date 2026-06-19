@@ -12,9 +12,9 @@ assignees: ""
 
 ## Steps To Reproduce
 
-1.
-2.
-3.
+1. First step.
+1. Next step.
+1. Failure observed.
 
 ## Expected Result
 
