@@ -55,9 +55,7 @@ def test_complete_lesson_stops_exercise_delivery() -> None:
     lesson = Lesson(
         id="intro",
         title="Intro",
-        exercises=(
-            Exercise(id="one", prompt="One", correct_answers=("one",)),
-        ),
+        exercises=(Exercise(id="one", prompt="One", correct_answers=("one",)),),
     )
     manager = LearningSessionManager()
     session = manager.start_lesson(lesson)
