@@ -48,7 +48,8 @@ pytest services/api/tests
 ## Development Scope
 
 - Prefer small, reviewed changes that preserve the monorepo boundaries.
-- Do not introduce external services, secrets, or infrastructure without an approved task.
+- Do not introduce external services, secrets, or infrastructure without an
+  approved task.
 - Do not commit generated files, local virtual environments, or `.env` files.
 - Keep public interfaces documented when adding package or service code.
 

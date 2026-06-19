@@ -15,7 +15,8 @@ Each pack is organized as:
 1. Topics: thematic groups inside a level, such as greetings or travel.
 1. Lessons: ordered units inside a topic.
 1. Exercises: practice items inside a lesson.
-1. Answers and explanations: accepted answers and learner-facing feedback for every exercise.
+1. Answers and explanations: accepted answers and learner-facing feedback for
+   every exercise.
 
 ```text
 language pack
