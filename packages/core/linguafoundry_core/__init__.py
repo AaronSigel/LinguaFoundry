@@ -20,6 +20,8 @@ from linguafoundry_core.models import (
     Lesson,
     Progress,
     User,
+    UserProgressStats,
+    calculate_user_progress_stats,
 )
 
 __all__ = [
@@ -40,4 +42,6 @@ __all__ = [
     "SessionState",
     "SessionStatus",
     "User",
+    "UserProgressStats",
+    "calculate_user_progress_stats",
 ]
