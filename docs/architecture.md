@@ -22,7 +22,6 @@ directories define ownership boundaries for implementation.
   instead of duplicating learning logic.
 - Language-specific lessons, prompts, or metadata should live under
   `packages/lang-packs`.
-- API routes should depend on reusable domain behavior through explicit
-  dependency providers instead of coupling HTTP handlers to future package
-  internals.
+- API-specific database configuration, SQLAlchemy models, and migrations live
+  under `services/api`.
 - Cross-cutting configuration keys must be reflected in `.env.example`.

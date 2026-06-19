@@ -1,9 +1,11 @@
 ---
+
 name: Bug report
 about: Report a reproducible defect in LinguaFoundry
 title: "[Bug]: "
 labels: bug
 assignees: ""
+
 ---
 
 ## Summary
