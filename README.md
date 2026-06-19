@@ -1,8 +1,11 @@
 # LinguaFoundry
 
-LinguaFoundry is an open-source modular language learning platform with a Telegram-first interface, SRS practice, and extensible language packs.
+LinguaFoundry is an open-source modular language learning platform with a
+Telegram-first interface, SRS practice, and extensible language packs.
 
-This repository is currently a scaffold for agent-assisted development. It defines the intended package boundaries and baseline operating rules. The API service includes an initial PostgreSQL database layer and Alembic migrations.
+This repository is currently a scaffold for agent-assisted development. It
+defines the intended package boundaries and baseline operating rules. The API
+service includes an initial PostgreSQL database layer and Alembic migrations.
 
 ## Repository Layout
 
@@ -18,7 +21,9 @@ This repository is currently a scaffold for agent-assisted development. It defin
 2. Read `AGENTS.md` before making automated changes.
 3. Keep changes scoped to the relevant service, package, or documentation area.
 
-No application run command is available in the scaffold state. CI quality gates install `requirements-dev.txt` and run Markdown formatting checks, Python linting when Python files exist, tests when tests exist, and a committed-secret scan.
+No application run command is available in the scaffold state. CI quality gates
+install `requirements-dev.txt` and run Markdown formatting checks, Python linting
+when Python files exist, tests when tests exist, and a committed-secret scan.
 
 Install API database dependencies and run migrations with:
 
