@@ -4,9 +4,7 @@ Owns the structure for language learning content and language packs.
 
 ## Language Pack Format
 
-Language packs are JSON documents that describe learning content for one target
-language. The canonical machine-readable contract lives in
-`schema/language-pack.schema.json`.
+Language packs are JSON documents that describe learning content for one target language. The canonical machine-readable contract lives in `schema/language-pack.schema.json`.
 
 Each pack is organized as:
 
@@ -15,8 +13,7 @@ Each pack is organized as:
 3. Topics: thematic groups inside a level, such as greetings or travel.
 4. Lessons: ordered units inside a topic.
 5. Exercises: practice items inside a lesson.
-6. Answers and explanations: accepted answers and learner-facing feedback for
-   every exercise.
+6. Answers and explanations: accepted answers and learner-facing feedback for every exercise.
 
 ```text
 language pack
@@ -44,15 +41,12 @@ Language metadata includes:
 
 ## Content Rules
 
-- IDs are stable, lowercase slugs and should not be reused for different
-  content.
+- IDs are stable, lowercase slugs and should not be reused for different content.
 - `order` is zero-based within each sibling list.
 - Lessons must include at least one exercise.
 - Exercises must include at least one accepted answer and one explanation.
-- Multiple-choice exercises should include `options`; the accepted answer value
-  should reference the correct option ID.
-- Free-text and translation exercises should put accepted learner responses in
-  `answers[].value`; `normalized_value` can be supplied for matching.
+- Multiple-choice exercises should include `options`; the accepted answer value should reference the correct option ID.
+- Free-text and translation exercises should put accepted learner responses in `answers[].value`; `normalized_value` can be supplied for matching.
 
 Supported exercise types are:
 
@@ -69,8 +63,7 @@ See `examples/es-a1-greetings.json` for a minimal Spanish A1 pack.
 
 ## Verification
 
-The repository does not currently include a JSON Schema validator dependency.
-Use the standard library to confirm example files are valid JSON:
+The repository does not currently include a JSON Schema validator dependency. Use the standard library to confirm example files are valid JSON:
 
 ```sh
 python -m json.tool packages/lang-packs/examples/es-a1-greetings.json >/dev/null
