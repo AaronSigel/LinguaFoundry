@@ -15,6 +15,7 @@ class IncomingMessage:
 
     chat_id: int
     text: str
+    sender_id: int | None = None
 
     @property
     def command(self) -> str | None:
@@ -40,7 +41,14 @@ def parse_message(update: dict[str, Any]) -> IncomingMessage | None:
     chat_id = chat.get("id")
     if not isinstance(chat_id, int):
         return None
-    return IncomingMessage(chat_id=chat_id, text=text)
+
+    sender = message.get("from")
+    sender_id = sender.get("id") if isinstance(sender, dict) else None
+    return IncomingMessage(
+        chat_id=chat_id,
+        text=text,
+        sender_id=sender_id if isinstance(sender_id, int) else None,
+    )
 
 
 class TelegramClient:
