@@ -2,6 +2,10 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from linguafoundry_core import (
+    LearningExercise as Exercise,
+    LearningLesson as Lesson,
+    LearningSessionManager,
 from linguafoundry_core.learning import (
     Exercise,
     LearningSessionManager,

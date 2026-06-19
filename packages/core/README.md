@@ -20,6 +20,14 @@ practice. Review dates are calculated by `calculate_review_due_at` with simple
 The initial implementation uses plain dataclasses and an in-memory store so
 service layers can adapt it to bot, API, or durable persistence concerns later.
 
+## Verification
+
+From the repository root:
+
+```sh
+PYTHONPATH=packages/core pytest packages/core/tests
+```
+
 ## Public Interface
 
 The `linguafoundry_core` package exposes the base learning domain model:

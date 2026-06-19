@@ -21,6 +21,10 @@ service includes an initial PostgreSQL database layer and Alembic migrations.
 1. Read `AGENTS.md` before making automated changes.
 1. Keep changes scoped to the relevant service, package, or documentation area.
 
+No application run command is available in the scaffold state. CI quality
+gates install `requirements-dev.txt` and run Markdown formatting checks,
+Python linting when Python files exist, tests when tests exist, and a
+committed-secret scan.
 No application run command is available in the scaffold state. CI quality gates
 install `requirements-dev.txt` and run Markdown formatting checks, Python
 linting when Python files exist, tests when tests exist, and a committed-secret
@@ -37,6 +41,12 @@ Run the API service locally with:
 
 ```shell
 python -m uvicorn services.api.app.main:app --reload
+```
+
+Run the Telegram bot lesson flow locally after setting `TELEGRAM_BOT_TOKEN`:
+
+```sh
+PYTHONPATH=packages/core:. python -m services.bot.app
 ```
 
 Run the focused API tests with:
