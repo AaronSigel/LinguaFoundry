@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0",
+  "pack_id": "es-a1-greetings",
+  "title": "Spanish A1 Greetings",
+  "description": "Minimal example language pack for beginner Spanish greetings.",
+  "language": {
+    "code": "es",
+    "name": "Spanish",
+    "native_name": "Espanol",
+    "direction": "ltr"
+  },
+  "source_language": {
+    "code": "en",
+    "name": "English",
+    "native_name": "English",
+    "direction": "ltr"
+  },
+  "levels": [
+    {
+      "id": "A1",
+      "title": "Beginner",
+      "description": "Basic everyday phrases.",
+      "order": 0,
+      "topics": [
+        {
+          "id": "greetings",
+          "title": "Greetings",
+          "description": "Common greetings and polite replies.",
+          "order": 0,
+          "lessons": [
+            {
+              "id": "hello-and-goodbye",
+              "title": "Hello and Goodbye",
+              "description": "Recognize and produce simple greeting phrases.",
+              "order": 0,
+              "learning_objectives": [
+                "Greet someone with hola.",
+                "Say goodbye with adios."
+              ],
+              "vocabulary": [
+                {
+                  "term": "hola",
+                  "translation": "hello",
+                  "part_of_speech": "interjection"
+                },
+                {
+                  "term": "adios",
+                  "translation": "goodbye",
+                  "part_of_speech": "interjection"
+                }
+              ],
+              "exercises": [
+                {
+                  "id": "choose-hello",
+                  "type": "multiple_choice",
+                  "order": 0,
+                  "prompt": {
+                    "text": "Which word means hello?",
+                    "instruction": "Choose one answer."
+                  },
+                  "options": [
+                    {
+                      "id": "hola",
+                      "text": "hola"
+                    },
+                    {
+                      "id": "adios",
+                      "text": "adios"
+                    }
+                  ],
+                  "answers": [
+                    {
+                      "value": "hola",
+                      "notes": "References the correct option ID."
+                    }
+                  ],
+                  "explanation": {
+                    "text": "Hola is the standard Spanish greeting for hello.",
+                    "notes": [
+                      "Adios means goodbye."
+                    ]
+                  },
+                  "tags": ["recognition", "greetings"]
+                },
+                {
+                  "id": "translate-goodbye",
+                  "type": "translation",
+                  "order": 1,
+                  "prompt": {
+                    "text": "Translate: goodbye",
+                    "instruction": "Type the Spanish word."
+                  },
+                  "answers": [
+                    {
+                      "value": "adios",
+                      "normalized_value": "adios",
+                      "case_sensitive": false
+                    }
+                  ],
+                  "explanation": {
+                    "text": "Adios is used to say goodbye.",
+                    "remediation": "Review the greetings vocabulary and try again."
+                  },
+                  "tags": ["production", "greetings"]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
