@@ -20,9 +20,18 @@ README.
 
 ## Testing and Quality
 
-No test command exists yet. When code is added, prefer focused tests close to
-the changed package or service. Document configured commands such as `pytest`,
-`ruff`, formatting, and type checking before relying on them in automation.
+The scaffold CI installs `requirements-dev.txt` and runs these baseline gates:
+
+- `mdformat --check .` for Markdown formatting.
+- `ruff format --check .` and `ruff check .` when Python files exist.
+- `pytest` when tests exist.
+- `detect-secrets scan --all-files` with a failing check for potential committed
+  secrets.
+
+No application test suite exists yet. When code is added, prefer focused tests
+close to the changed package or service. Document configured commands such as
+`pytest`, `ruff`, formatting, and type checking before relying on them in
+automation.
 
 ## Scope Rules
 
