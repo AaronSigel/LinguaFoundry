@@ -1,9 +1,9 @@
 ---
 name: Bug report
 about: Report a reproducible defect in LinguaFoundry
-title: "[Bug]: "
+title: '[Bug]: '
 labels: bug
-assignees: ""
+assignees: ''
 ---
 
 ## Summary
@@ -13,8 +13,8 @@ assignees: ""
 ## Steps To Reproduce
 
 1. First step.
-1. Next step.
-1. Failure observed.
+2. Next step.
+3. Failure observed.
 
 ## Expected Result
 
