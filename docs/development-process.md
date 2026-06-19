@@ -16,11 +16,11 @@ Each work item should include:
 When a coding agent implements a task, it should:
 
 1. Inspect the repository layout, existing conventions, configuration, and nearby files before editing.
-2. Keep changes scoped to the approved task and avoid unrelated refactors.
-3. Preserve existing public interfaces unless the task explicitly changes them.
-4. Add or update tests and documentation in proportion to the risk of the change.
-5. Run the repository's relevant verification commands when available.
-6. Report changed files, verification results, and known risks for human review.
+1. Keep changes scoped to the approved task and avoid unrelated refactors.
+1. Preserve existing public interfaces unless the task explicitly changes them.
+1. Add or update tests and documentation in proportion to the risk of the change.
+1. Run the repository's relevant verification commands when available.
+1. Report changed files, verification results, and known risks for human review.
 
 ## Human Review
 

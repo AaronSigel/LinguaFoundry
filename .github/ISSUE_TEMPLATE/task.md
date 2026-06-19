@@ -12,13 +12,13 @@ assignees: ""
 
 ## Scope
 
-- [ ]
-- [ ]
+- [ ] In scope:
+- [ ] Out of scope:
 
 ## Acceptance Criteria
 
-- [ ]
-- [ ]
+- [ ] Expected outcome:
+- [ ] Verification:
 
 ## Notes
 

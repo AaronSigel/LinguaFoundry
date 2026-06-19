@@ -8,8 +8,8 @@ dependency lockfile, runnable service, or automated test suite yet.
 ## Local Setup
 
 1. Clone the repository.
-2. Copy `.env.example` to `.env` if local environment values are needed.
-3. Add a virtual environment only when implementation code introduces Python
+1. Copy `.env.example` to `.env` if local environment values are needed.
+1. Add a virtual environment only when implementation code introduces Python
    dependencies.
 
 ## Running
