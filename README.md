@@ -4,8 +4,8 @@ LinguaFoundry is an open-source modular language learning platform with a
 Telegram-first interface, SRS practice, and extensible language packs.
 
 This repository is currently a scaffold for agent-assisted development. It
-defines the intended package boundaries and baseline operating rules, but does
-not include runnable application code yet.
+defines the intended package boundaries and baseline operating rules. The API
+service includes an initial PostgreSQL database layer and Alembic migrations.
 
 ## Repository Layout
 
@@ -17,16 +17,21 @@ not include runnable application code yet.
 
 ## Getting Started
 
-1. Copy `.env.example` to `.env` for local configuration when services are
-   implemented.
+1. Copy `.env.example` to `.env` for local configuration.
 1. Read `AGENTS.md` before making automated changes.
 1. Keep changes scoped to the relevant service, package, or documentation area.
 
 No application run command is available in the scaffold state. CI quality gates
 install `requirements-dev.txt` and run Markdown formatting checks, Python
 linting when Python files exist, tests when tests exist, and a committed-secret
-scan. Add service-specific run commands alongside the first implementation that
-requires them, and document them here.
+scan.
+
+Install API database dependencies and run migrations with:
+
+```bash
+python -m pip install -r services/api/requirements.txt
+alembic -c services/api/alembic.ini upgrade head
+```
 
 ## Development Scope
 

@@ -8,7 +8,7 @@ package directories define ownership boundaries for future implementation.
 ## Services
 
 - `services/bot`: Telegram-facing entrypoint for user interaction.
-- `services/api`: Planned for a later stage and intentionally not implemented yet.
+- `services/api`: HTTP/API boundary and PostgreSQL-backed persistence layer.
 
 ## Packages
 
@@ -21,6 +21,6 @@ package directories define ownership boundaries for future implementation.
   instead of duplicating learning logic.
 - Language-specific lessons, prompts, or metadata should live under
   `packages/lang-packs`.
-- The API service should not be introduced until an approved task defines its
-  first endpoint and runtime requirements.
+- API-specific database configuration, SQLAlchemy models, and migrations live
+  under `services/api`.
 - Cross-cutting configuration keys must be reflected in `.env.example`.
