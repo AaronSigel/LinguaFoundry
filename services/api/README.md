@@ -67,6 +67,8 @@ Learning workflow endpoints are available under `/learning`:
 - `GET /learning/sessions/{session_id}/exercise`: fetch the current exercise.
 - `POST /learning/sessions/{session_id}/answers`: submit an answer.
 - `GET /learning/users/{user_id}/progress`: fetch learner progress.
+- `GET /learning/users/{user_id}/progress/stats`: fetch aggregate learner
+  statistics.
 
 ## Verification
 

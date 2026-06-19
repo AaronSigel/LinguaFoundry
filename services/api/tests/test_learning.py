@@ -1,6 +1,13 @@
+from datetime import datetime, timezone
+
 from services.api.app.config import Settings
 from services.api.app.main import create_app
-from services.api.app.routers.learning import _score_answer, _score_value
+from services.api.app.routers.learning import (
+    _accuracy,
+    _latest_datetime,
+    _score_answer,
+    _score_value,
+)
 
 
 def test_openapi_schema_includes_learning_endpoints() -> None:
@@ -14,6 +21,7 @@ def test_openapi_schema_includes_learning_endpoints() -> None:
     assert "/learning/sessions/{session_id}/exercise" in schema["paths"]
     assert "/learning/sessions/{session_id}/answers" in schema["paths"]
     assert "/learning/users/{user_id}/progress" in schema["paths"]
+    assert "/learning/users/{user_id}/progress/stats" in schema["paths"]
 
 
 def test_score_answer_accepts_normalized_answer_variants() -> None:
@@ -26,3 +34,13 @@ def test_score_answer_accepts_normalized_answer_variants() -> None:
 def test_score_answer_returns_none_without_answer_key() -> None:
     assert _score_answer("hola", None) is None
     assert _score_value(None) is None
+
+
+def test_progress_stats_helpers_handle_empty_and_latest_values() -> None:
+    earlier = datetime(2026, 1, 1, 9, tzinfo=timezone.utc)
+    later = datetime(2026, 1, 2, 10, tzinfo=timezone.utc)
+
+    assert _accuracy(0, 0) == 0.0
+    assert _accuracy(2, 4) == 0.5
+    assert _latest_datetime(None, earlier, later) == later
+    assert _latest_datetime(None, None) is None

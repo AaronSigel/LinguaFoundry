@@ -4,7 +4,6 @@ from linguafoundry_core.learning import (
     AnswerResult,
     InMemoryLearningSessionStore,
     Exercise as LearningExercise,
-    LearningSessionManager,
     Lesson as LearningLesson,
     InMemoryReviewStore,
     LearningSessionManager,
