@@ -1,0 +1,351 @@
+{
+  "schema_version": "1.0",
+  "pack_id": "fr-a1-seed",
+  "title": "French A1 Seed Pack",
+  "description": "Minimal French A1 pack with several beginner lessons for manual testing of the learning flow.",
+  "language": {
+    "code": "fr",
+    "name": "French",
+    "native_name": "Francais",
+    "direction": "ltr"
+  },
+  "source_language": {
+    "code": "en",
+    "name": "English",
+    "native_name": "English",
+    "direction": "ltr"
+  },
+  "levels": [
+    {
+      "id": "A1",
+      "title": "Beginner",
+      "description": "Basic French phrases for first conversations.",
+      "order": 0,
+      "topics": [
+        {
+          "id": "first-phrases",
+          "title": "First Phrases",
+          "description": "Greetings, politeness, and simple introductions.",
+          "order": 0,
+          "lessons": [
+            {
+              "id": "greetings",
+              "title": "Greetings",
+              "description": "Recognize and produce common French greetings.",
+              "order": 0,
+              "learning_objectives": [
+                "Say hello with bonjour.",
+                "Say goodbye with au revoir.",
+                "Choose a greeting for the time of day."
+              ],
+              "vocabulary": [
+                {
+                  "term": "bonjour",
+                  "translation": "hello",
+                  "part_of_speech": "interjection"
+                },
+                {
+                  "term": "bonsoir",
+                  "translation": "good evening",
+                  "part_of_speech": "interjection"
+                },
+                {
+                  "term": "au revoir",
+                  "translation": "goodbye",
+                  "part_of_speech": "interjection"
+                }
+              ],
+              "exercises": [
+                {
+                  "id": "choose-hello",
+                  "type": "multiple_choice",
+                  "order": 0,
+                  "prompt": {
+                    "text": "Which phrase means hello?",
+                    "instruction": "Choose one answer."
+                  },
+                  "options": [
+                    {
+                      "id": "bonjour",
+                      "text": "bonjour"
+                    },
+                    {
+                      "id": "au-revoir",
+                      "text": "au revoir"
+                    },
+                    {
+                      "id": "merci",
+                      "text": "merci"
+                    }
+                  ],
+                  "answers": [
+                    {
+                      "value": "bonjour",
+                      "notes": "References the correct option ID."
+                    }
+                  ],
+                  "explanation": {
+                    "text": "Bonjour is the standard French greeting for hello.",
+                    "notes": [
+                      "Au revoir means goodbye."
+                    ]
+                  },
+                  "tags": ["recognition", "greetings"]
+                },
+                {
+                  "id": "translate-goodbye",
+                  "type": "translation",
+                  "order": 1,
+                  "prompt": {
+                    "text": "Translate: goodbye",
+                    "instruction": "Type the French phrase."
+                  },
+                  "answers": [
+                    {
+                      "value": "au revoir",
+                      "normalized_value": "au revoir",
+                      "case_sensitive": false
+                    }
+                  ],
+                  "explanation": {
+                    "text": "Au revoir is used to say goodbye.",
+                    "remediation": "Review the greetings vocabulary and try again."
+                  },
+                  "tags": ["production", "greetings"]
+                },
+                {
+                  "id": "flashcard-good-evening",
+                  "type": "flashcard",
+                  "order": 2,
+                  "prompt": {
+                    "text": "bonsoir",
+                    "instruction": "Recall the English meaning."
+                  },
+                  "answers": [
+                    {
+                      "value": "good evening",
+                      "normalized_value": "good evening",
+                      "case_sensitive": false
+                    }
+                  ],
+                  "explanation": {
+                    "text": "Bonsoir means good evening."
+                  },
+                  "tags": ["recall", "greetings"]
+                }
+              ]
+            },
+            {
+              "id": "polite-words",
+              "title": "Polite Words",
+              "description": "Use basic polite expressions in short exchanges.",
+              "order": 1,
+              "learning_objectives": [
+                "Thank someone with merci.",
+                "Ask politely with s'il vous plait.",
+                "Respond with de rien."
+              ],
+              "vocabulary": [
+                {
+                  "term": "merci",
+                  "translation": "thank you",
+                  "part_of_speech": "interjection"
+                },
+                {
+                  "term": "s'il vous plait",
+                  "translation": "please",
+                  "part_of_speech": "phrase"
+                },
+                {
+                  "term": "de rien",
+                  "translation": "you are welcome",
+                  "part_of_speech": "phrase"
+                }
+              ],
+              "exercises": [
+                {
+                  "id": "choose-thank-you",
+                  "type": "multiple_choice",
+                  "order": 0,
+                  "prompt": {
+                    "text": "Which word means thank you?",
+                    "instruction": "Choose one answer."
+                  },
+                  "options": [
+                    {
+                      "id": "merci",
+                      "text": "merci"
+                    },
+                    {
+                      "id": "bonjour",
+                      "text": "bonjour"
+                    },
+                    {
+                      "id": "bonsoir",
+                      "text": "bonsoir"
+                    }
+                  ],
+                  "answers": [
+                    {
+                      "value": "merci",
+                      "notes": "References the correct option ID."
+                    }
+                  ],
+                  "explanation": {
+                    "text": "Merci means thank you."
+                  },
+                  "tags": ["recognition", "politeness"]
+                },
+                {
+                  "id": "type-please",
+                  "type": "text_input",
+                  "order": 1,
+                  "prompt": {
+                    "text": "Complete the polite request: Un cafe, ___",
+                    "instruction": "Type the French phrase for please."
+                  },
+                  "answers": [
+                    {
+                      "value": "s'il vous plait",
+                      "normalized_value": "s'il vous plait",
+                      "case_sensitive": false
+                    }
+                  ],
+                  "explanation": {
+                    "text": "S'il vous plait means please in a polite request.",
+                    "remediation": "Use the full polite phrase after the noun."
+                  },
+                  "tags": ["production", "politeness"]
+                },
+                {
+                  "id": "translate-you-are-welcome",
+                  "type": "translation",
+                  "order": 2,
+                  "prompt": {
+                    "text": "Translate: you are welcome",
+                    "instruction": "Type the French phrase."
+                  },
+                  "answers": [
+                    {
+                      "value": "de rien",
+                      "normalized_value": "de rien",
+                      "case_sensitive": false
+                    }
+                  ],
+                  "explanation": {
+                    "text": "De rien is a common way to say you are welcome."
+                  },
+                  "tags": ["production", "politeness"]
+                }
+              ]
+            },
+            {
+              "id": "introductions",
+              "title": "Introductions",
+              "description": "Ask for a name and introduce yourself.",
+              "order": 2,
+              "learning_objectives": [
+                "Ask someone's name.",
+                "Say my name is with je m'appelle.",
+                "Use enchante after meeting someone."
+              ],
+              "vocabulary": [
+                {
+                  "term": "Comment vous appelez-vous ?",
+                  "translation": "What is your name?",
+                  "part_of_speech": "question"
+                },
+                {
+                  "term": "Je m'appelle",
+                  "translation": "My name is",
+                  "part_of_speech": "phrase"
+                },
+                {
+                  "term": "enchante",
+                  "translation": "nice to meet you",
+                  "part_of_speech": "adjective"
+                }
+              ],
+              "exercises": [
+                {
+                  "id": "choose-name-question",
+                  "type": "multiple_choice",
+                  "order": 0,
+                  "prompt": {
+                    "text": "Which question asks What is your name?",
+                    "instruction": "Choose one answer."
+                  },
+                  "options": [
+                    {
+                      "id": "comment-vous-appelez-vous",
+                      "text": "Comment vous appelez-vous ?"
+                    },
+                    {
+                      "id": "au-revoir",
+                      "text": "Au revoir"
+                    },
+                    {
+                      "id": "de-rien",
+                      "text": "De rien"
+                    }
+                  ],
+                  "answers": [
+                    {
+                      "value": "comment-vous-appelez-vous",
+                      "notes": "References the correct option ID."
+                    }
+                  ],
+                  "explanation": {
+                    "text": "Comment vous appelez-vous ? is a polite way to ask someone's name."
+                  },
+                  "tags": ["recognition", "introductions"]
+                },
+                {
+                  "id": "type-my-name-is",
+                  "type": "text_input",
+                  "order": 1,
+                  "prompt": {
+                    "text": "Complete: ___ Marie.",
+                    "instruction": "Type the French phrase for My name is."
+                  },
+                  "answers": [
+                    {
+                      "value": "Je m'appelle",
+                      "normalized_value": "je m'appelle",
+                      "case_sensitive": false
+                    }
+                  ],
+                  "explanation": {
+                    "text": "Je m'appelle introduces your name.",
+                    "remediation": "Place je m'appelle before the name."
+                  },
+                  "tags": ["production", "introductions"]
+                },
+                {
+                  "id": "translate-nice-to-meet-you",
+                  "type": "translation",
+                  "order": 2,
+                  "prompt": {
+                    "text": "Translate: nice to meet you",
+                    "instruction": "Type the French word."
+                  },
+                  "answers": [
+                    {
+                      "value": "enchante",
+                      "normalized_value": "enchante",
+                      "case_sensitive": false
+                    }
+                  ],
+                  "explanation": {
+                    "text": "Enchante is used after meeting someone."
+                  },
+                  "tags": ["production", "introductions"]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
