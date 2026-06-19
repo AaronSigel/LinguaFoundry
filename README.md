@@ -4,13 +4,13 @@ LinguaFoundry is an open-source modular language learning platform with a
 Telegram-first interface, SRS practice, and extensible language packs.
 
 This repository is currently a scaffold for agent-assisted development. It
-defines the intended package boundaries and baseline operating rules, but does
-not include runnable application code yet.
+defines the intended package boundaries and baseline operating rules, and
+includes an initial FastAPI skeleton for the API service.
 
 ## Repository Layout
 
 - `services/bot`: Telegram-facing entrypoint for the Stage 1 MVP.
-- `services/api`: Placeholder for a future API service.
+- `services/api`: FastAPI backend skeleton with a health endpoint.
 - `packages/core`: Shared domain logic, including SRS behavior.
 - `packages/lang-packs`: Language content schemas and language packs.
 - `docs`: Project documentation and development notes.
@@ -22,11 +22,21 @@ not include runnable application code yet.
 1. Read `AGENTS.md` before making automated changes.
 1. Keep changes scoped to the relevant service, package, or documentation area.
 
-No application run command is available in the scaffold state. CI quality gates
-install `requirements-dev.txt` and run Markdown formatting checks, Python
-linting when Python files exist, tests when tests exist, and a committed-secret
-scan. Add service-specific run commands alongside the first implementation that
-requires them, and document them here.
+CI quality gates install `requirements-dev.txt` and run Markdown formatting
+checks, Python linting when Python files exist, tests when tests exist, and a
+committed-secret scan.
+
+Run the API service locally with:
+
+```sh
+python -m uvicorn services.api.app.main:app --reload
+```
+
+Run the focused API tests with:
+
+```sh
+pytest services/api/tests
+```
 
 ## Development Scope
 
