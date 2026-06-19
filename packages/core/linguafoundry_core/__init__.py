@@ -1,4 +1,4 @@
-"""Core domain logic for LinguaFoundry."""
+"""Core domain model and learning flow primitives for LinguaFoundry."""
 
 from linguafoundry_core.learning import (
     AnswerResult,
@@ -24,6 +24,8 @@ from linguafoundry_core.models import (
     Lesson,
     Progress,
     User,
+    UserProgressStats,
+    calculate_user_progress_stats,
 )
 
 __all__ = [
@@ -48,4 +50,6 @@ __all__ = [
     "SessionStatus",
     "User",
     "calculate_review_due_at",
+    "UserProgressStats",
+    "calculate_user_progress_stats",
 ]

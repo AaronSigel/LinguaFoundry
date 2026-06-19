@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from linguafoundry_core import (
 from linguafoundry_core.learning import (
     Exercise,
     LearningSessionManager,
@@ -10,6 +11,7 @@ from linguafoundry_core.learning import (
     SessionNotFoundError,
     SessionStatus,
 )
+from linguafoundry_core.learning import Exercise, Lesson
 
 
 FROZEN_NOW = datetime(2026, 6, 19, 12, 0, tzinfo=timezone.utc)
@@ -174,6 +176,7 @@ def test_complete_lesson_stops_exercise_delivery() -> None:
     lesson = Lesson(
         id="intro",
         title="Intro",
+        exercises=(Exercise(id="one", prompt="One", correct_answers=("one",)),),
         exercises=(
             Exercise(
                 id="one",
@@ -225,7 +228,11 @@ def test_unknown_session_raises_domain_error() -> None:
                 ),
             ),
         ),
-        ("lesson", "Title", ()),
+        (
+            "lesson",
+            "Title",
+            (),
+        ),
     ],
 )
 def test_lesson_requires_identity_title_and_exercises(

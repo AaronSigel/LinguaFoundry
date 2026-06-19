@@ -76,7 +76,7 @@ Available example packs:
 The repository does not currently include a JSON Schema validator dependency.
 Use the standard library to confirm example files are valid JSON:
 
-```sh
+```shell
 python -m json.tool packages/lang-packs/examples/es-a1-greetings.json >/dev/null
 python -m json.tool packages/lang-packs/examples/fr-a1-seed.json >/dev/null
 ```

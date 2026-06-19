@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -191,3 +192,84 @@ class Progress:
         if self.total_exercises == 0:
             return 0.0
         return self.completed_exercises / self.total_exercises
+
+
+@dataclass(frozen=True, slots=True)
+class UserProgressStats:
+    """Basic aggregate progress statistics for a learner."""
+
+    user_id: str
+    answer_count: int = 0
+    accuracy: float = 0.0
+    completed_lessons: int = 0
+    active_repetitions: int = 0
+    last_activity_at: datetime | None = None
+
+    def __post_init__(self) -> None:
+        _require_non_empty(self.user_id, "user_id")
+        if self.answer_count < 0:
+            raise ValueError("answer_count must be non-negative")
+        if not 0.0 <= self.accuracy <= 1.0:
+            raise ValueError("accuracy must be between 0.0 and 1.0")
+        if self.completed_lessons < 0:
+            raise ValueError("completed_lessons must be non-negative")
+        if self.active_repetitions < 0:
+            raise ValueError("active_repetitions must be non-negative")
+
+    @property
+    def accuracy_percent(self) -> float:
+        """Return accuracy as a percentage from 0.0 to 100.0."""
+        return self.accuracy * 100
+
+
+def calculate_user_progress_stats(
+    user_id: str,
+    attempts: Iterable[Attempt] = (),
+    progress_entries: Iterable[Progress] = (),
+) -> UserProgressStats:
+    """Build basic learner statistics from known attempts and lesson progress."""
+
+    _require_non_empty(user_id, "user_id")
+
+    user_attempts = [attempt for attempt in attempts if attempt.user_id == user_id]
+    answered_attempts = [
+        attempt
+        for attempt in user_attempts
+        if attempt.result in {AttemptResult.CORRECT, AttemptResult.INCORRECT}
+    ]
+    correct_answers = sum(
+        1 for attempt in answered_attempts if attempt.result is AttemptResult.CORRECT
+    )
+    answer_count = len(answered_attempts)
+    accuracy = correct_answers / answer_count if answer_count else 0.0
+
+    user_progress_entries = [
+        progress for progress in progress_entries if progress.user_id == user_id
+    ]
+    completed_lessons = sum(
+        1
+        for progress in user_progress_entries
+        if progress.status is CompletionStatus.COMPLETED
+    )
+    active_repetitions = sum(
+        1
+        for progress in user_progress_entries
+        if progress.status is CompletionStatus.IN_PROGRESS
+    )
+    activity_times = [
+        activity_time
+        for activity_time in (
+            *(attempt.attempted_at for attempt in user_attempts),
+            *(progress.last_attempt_at for progress in user_progress_entries),
+        )
+        if activity_time is not None
+    ]
+
+    return UserProgressStats(
+        user_id=user_id,
+        answer_count=answer_count,
+        accuracy=accuracy,
+        completed_lessons=completed_lessons,
+        active_repetitions=active_repetitions,
+        last_activity_at=max(activity_times, default=None),
+    )
