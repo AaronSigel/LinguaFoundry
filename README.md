@@ -6,8 +6,6 @@ Telegram-first interface, SRS practice, and extensible language packs.
 This repository is currently a scaffold for agent-assisted development. It
 defines the intended package boundaries and baseline operating rules. The API
 service includes an initial PostgreSQL database layer and Alembic migrations.
-defines the intended package boundaries and baseline operating rules, and
-includes an initial FastAPI skeleton for the API service.
 
 ## Repository Layout
 
@@ -20,22 +18,19 @@ includes an initial FastAPI skeleton for the API service.
 ## Getting Started
 
 1. Copy `.env.example` to `.env` for local configuration.
-1. Read `AGENTS.md` before making automated changes.
-1. Keep changes scoped to the relevant service, package, or documentation area.
+2. Read `AGENTS.md` before making automated changes.
+3. Keep changes scoped to the relevant service, package, or documentation area.
 
 No application run command is available in the scaffold state. CI quality gates
-install `requirements-dev.txt` and run Markdown formatting checks, Python
-linting when Python files exist, tests when tests exist, and a committed-secret
-scan.
+install `requirements-dev.txt` and run Markdown formatting checks, Python linting
+when Python files exist, tests when tests exist, and a committed-secret scan.
 
 Install API database dependencies and run migrations with:
 
-```bash
+```sh
 python -m pip install -r services/api/requirements.txt
 alembic -c services/api/alembic.ini upgrade head
-CI quality gates install `requirements-dev.txt` and run Markdown formatting
-checks, Python linting when Python files exist, tests when tests exist, and a
-committed-secret scan.
+```
 
 Run the API service locally with:
 
@@ -52,8 +47,7 @@ pytest services/api/tests
 ## Development Scope
 
 - Prefer small, reviewed changes that preserve the monorepo boundaries.
-- Do not introduce external services, secrets, or infrastructure without an
-  approved task.
+- Do not introduce external services, secrets, or infrastructure without an approved task.
 - Do not commit generated files, local virtual environments, or `.env` files.
 - Keep public interfaces documented when adding package or service code.
 
