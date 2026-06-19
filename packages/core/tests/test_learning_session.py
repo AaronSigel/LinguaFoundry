@@ -3,6 +3,9 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from linguafoundry_core import (
+    LearningExercise as Exercise,
+    LearningLesson as Lesson,
+    LearningSessionManager,
 from linguafoundry_core.learning import (
     Exercise,
     LearningSessionManager,
@@ -176,7 +179,6 @@ def test_complete_lesson_stops_exercise_delivery() -> None:
     lesson = Lesson(
         id="intro",
         title="Intro",
-        exercises=(Exercise(id="one", prompt="One", correct_answers=("one",)),),
         exercises=(
             Exercise(
                 id="one",

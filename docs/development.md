@@ -19,6 +19,11 @@ package metadata lives in `pyproject.toml`; there is no dependency lockfile yet.
 1. Create a virtual environment and install the project when working on Python
    services:
 
+1. Copy `.env.example` to `.env` if local environment values are needed.
+
+1. Create a virtual environment and install the project when working on Python
+   services:
+
    ```shell
    python -m pip install -e .
    python -m pip install -r requirements-dev.txt
