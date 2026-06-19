@@ -1,9 +1,9 @@
 import pytest
 
 from linguafoundry_core import (
-    Exercise,
+    LearningExercise as Exercise,
+    LearningLesson as Lesson,
     LearningSessionManager,
-    Lesson,
     SessionNotFoundError,
     SessionStatus,
 )
