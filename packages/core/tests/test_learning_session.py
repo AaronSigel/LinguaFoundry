@@ -88,7 +88,11 @@ def test_unknown_session_raises_domain_error() -> None:
             "",
             (Exercise(id="one", prompt="Prompt", correct_answers=("a",)),),
         ),
-        ("lesson", "Title", ()),
+        (
+            "lesson",
+            "Title",
+            (),
+        ),
     ],
 )
 def test_lesson_requires_identity_title_and_exercises(
