@@ -4,7 +4,10 @@ from dataclasses import dataclass, field
 import os
 
 
-DEFAULT_DATABASE_ACCOUNT = ("linguafoundry", "linguafoundry")  # pragma: allowlist secret
+DEFAULT_DATABASE_ACCOUNT = (
+    "linguafoundry",
+    "linguafoundry",
+)  # pragma: allowlist secret
 DEFAULT_DATABASE_HOST = "localhost"
 DEFAULT_DATABASE_PORT = 5432
 DEFAULT_DATABASE_NAME = "linguafoundry"
