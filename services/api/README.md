@@ -4,11 +4,9 @@ API service package for HTTP-facing behavior and durable storage.
 
 ## Database
 
-The API database layer uses SQLAlchemy 2.x, asyncpg, PostgreSQL, and Alembic.
-Configuration is read from environment variables:
+The API database layer uses SQLAlchemy 2.x, asyncpg, PostgreSQL, and Alembic. Configuration is read from environment variables:
 
-- `DATABASE_URL`: PostgreSQL connection URL, using the
-  `postgresql+asyncpg://` driver form.
+- `DATABASE_URL`: PostgreSQL connection URL, using the `postgresql+asyncpg://` driver form.
 - `DATABASE_ECHO`: set to `true` to log SQL statements locally.
 
 Install API dependencies from the repository root:
@@ -29,8 +27,7 @@ Create future migrations from SQLAlchemy model changes:
 alembic -c services/api/alembic.ini revision --autogenerate -m "describe change"
 ```
 
-Minimal ORM models live in `services/api/app/db/models.py` for users, lessons,
-exercises, attempts, and per-user lesson progress.
+Minimal ORM models live in `services/api/app/db/models.py` for users, lessons, exercises, attempts, and per-user lesson progress.
 FastAPI backend for LinguaFoundry HTTP endpoints.
 
 ## Structure
@@ -43,8 +40,7 @@ FastAPI backend for LinguaFoundry HTTP endpoints.
 
 ## Configuration
 
-The service reads shared repository settings from environment variables or a
-local `.env` file:
+The service reads shared repository settings from environment variables or a local `.env` file:
 
 - `APP_ENV`: runtime environment name, defaults to `development`.
 - `LOG_LEVEL`: log verbosity, defaults to `INFO`.
