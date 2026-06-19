@@ -11,11 +11,11 @@ language. The canonical machine-readable contract lives in
 Each pack is organized as:
 
 1. Pack metadata: `schema_version`, `pack_id`, and target `language`.
-2. Levels: CEFR-aligned groups from `A1` through `C2`.
-3. Topics: thematic groups inside a level, such as greetings or travel.
-4. Lessons: ordered units inside a topic.
-5. Exercises: practice items inside a lesson.
-6. Answers and explanations: accepted answers and learner-facing feedback for
+1. Levels: CEFR-aligned groups from `A1` through `C2`.
+1. Topics: thematic groups inside a level, such as greetings or travel.
+1. Lessons: ordered units inside a topic.
+1. Exercises: practice items inside a lesson.
+1. Answers and explanations: accepted answers and learner-facing feedback for
    every exercise.
 
 ```text
