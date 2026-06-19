@@ -22,9 +22,11 @@ not include runnable application code yet.
 2. Read `AGENTS.md` before making automated changes.
 3. Keep changes scoped to the relevant service, package, or documentation area.
 
-No install, test, or run command is available in the scaffold state. Add those
-commands alongside the first implementation that requires them, and document
-them here.
+No application run command is available in the scaffold state. CI quality gates
+install `requirements-dev.txt` and run Markdown formatting checks, Python
+linting when Python files exist, tests when tests exist, and a committed-secret
+scan. Add service-specific run commands alongside the first implementation that
+requires them, and document them here.
 
 ## Development Scope
 
