@@ -34,6 +34,8 @@ The `linguafoundry_core` package exposes the base learning domain model:
 - `Attempt`
 - `LearningSession`
 - `Progress`
+- `UserProgressStats`
+- `calculate_user_progress_stats`
 - `CompletionStatus`
 
 ## Verification
