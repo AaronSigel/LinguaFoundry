@@ -28,20 +28,20 @@ scan.
 
 Install API database dependencies and run migrations with:
 
-```sh
+```shell
 python -m pip install -r services/api/requirements.txt
 alembic -c services/api/alembic.ini upgrade head
 ```
 
 Run the API service locally with:
 
-```sh
+```shell
 python -m uvicorn services.api.app.main:app --reload
 ```
 
 Run the focused API tests with:
 
-```sh
+```shell
 pytest services/api/tests
 ```
 

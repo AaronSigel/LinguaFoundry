@@ -1,1 +1,1 @@
-"""Telegram bot service helpers."""
+"""Telegram bot service package."""

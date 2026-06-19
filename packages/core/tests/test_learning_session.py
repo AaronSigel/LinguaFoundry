@@ -1,12 +1,13 @@
 import pytest
 
+from linguafoundry_core import (
 from linguafoundry_core.learning import (
     Exercise,
     LearningSessionManager,
-    Lesson,
     SessionNotFoundError,
     SessionStatus,
 )
+from linguafoundry_core.learning import Exercise, Lesson
 
 
 def test_learning_session_runs_through_lesson_flow() -> None:
@@ -56,6 +57,7 @@ def test_complete_lesson_stops_exercise_delivery() -> None:
     lesson = Lesson(
         id="intro",
         title="Intro",
+        exercises=(Exercise(id="one", prompt="One", correct_answers=("one",)),),
         exercises=(
             Exercise(
                 id="one",
@@ -107,7 +109,11 @@ def test_unknown_session_raises_domain_error() -> None:
                 ),
             ),
         ),
-        ("lesson", "Title", ()),
+        (
+            "lesson",
+            "Title",
+            (),
+        ),
     ],
 )
 def test_lesson_requires_identity_title_and_exercises(
