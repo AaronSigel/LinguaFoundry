@@ -1,9 +1,9 @@
 ---
 name: Feature request
 about: Propose a focused product or engineering change
-title: '[Feature]: '
+title: "[Feature]: "
 labels: enhancement
-assignees: ''
+assignees: ""
 ---
 
 ## Summary
