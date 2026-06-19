@@ -1,4 +1,4 @@
-"""Core domain logic for LinguaFoundry."""
+"""Core domain model and learning flow primitives for LinguaFoundry."""
 
 from linguafoundry_core.learning import (
     AnswerResult,
