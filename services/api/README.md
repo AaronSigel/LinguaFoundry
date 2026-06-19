@@ -1,3 +1,68 @@
 # API Service
 
-Planned API service for a later stage. No implementation is included yet.
+API service package for HTTP-facing behavior and durable storage.
+
+## Database
+
+The API database layer uses SQLAlchemy 2.x, asyncpg, PostgreSQL, and Alembic.
+Configuration is read from environment variables:
+
+- `DATABASE_URL`: PostgreSQL connection URL, using the
+  `postgresql+asyncpg://` driver form.
+- `DATABASE_ECHO`: set to `true` to log SQL statements locally.
+
+Install API dependencies from the repository root:
+
+```bash
+python -m pip install -r services/api/requirements.txt
+```
+
+Run migrations from the repository root:
+
+```bash
+alembic -c services/api/alembic.ini upgrade head
+```
+
+Create future migrations from SQLAlchemy model changes:
+
+```bash
+alembic -c services/api/alembic.ini revision --autogenerate -m "describe change"
+```
+
+Minimal ORM models live in `services/api/app/db/models.py` for users, lessons,
+exercises, attempts, and per-user lesson progress.
+FastAPI backend for LinguaFoundry HTTP endpoints.
+
+## Structure
+
+- `app/main.py`: application factory and ASGI app export.
+- `app/config.py`: environment-backed runtime settings.
+- `app/routers`: HTTP route modules.
+- `app/dependencies.py`: dependency providers for future domain integration.
+- `tests`: focused service tests.
+
+## Configuration
+
+The service reads shared repository settings from environment variables or a
+local `.env` file:
+
+- `APP_ENV`: runtime environment name, defaults to `development`.
+- `LOG_LEVEL`: log verbosity, defaults to `INFO`.
+
+## Run Locally
+
+Install development dependencies, then run the ASGI app:
+
+```sh
+python -m uvicorn services.api.app.main:app --reload
+```
+
+The health endpoint is available at `GET /health`.
+
+## Verification
+
+Run the focused API tests with:
+
+```sh
+pytest services/api/tests
+```
