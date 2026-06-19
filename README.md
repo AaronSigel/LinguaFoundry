@@ -18,8 +18,8 @@ service includes an initial PostgreSQL database layer and Alembic migrations.
 ## Getting Started
 
 1. Copy `.env.example` to `.env` for local configuration.
-1. Read `AGENTS.md` before making automated changes.
-1. Keep changes scoped to the relevant service, package, or documentation area.
+2. Read `AGENTS.md` before making automated changes.
+3. Keep changes scoped to the relevant service, package, or documentation area.
 
 No application run command is available in the scaffold state. CI quality gates
 install `requirements-dev.txt` and run Markdown formatting checks, Python

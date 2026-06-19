@@ -8,8 +8,8 @@ package metadata lives in `pyproject.toml`; there is no dependency lockfile yet.
 ## Local Setup
 
 1. Clone the repository.
-1. Copy `.env.example` to `.env` if local environment values are needed.
-1. Create a virtual environment and install the project when working on Python services:
+2. Copy `.env.example` to `.env` if local environment values are needed.
+3. Create a virtual environment and install the project when working on Python services:
 
    ```sh
    python -m pip install -e .
