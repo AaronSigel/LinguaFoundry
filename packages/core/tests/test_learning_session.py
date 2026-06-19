@@ -1,6 +1,6 @@
 import pytest
 
-from linguafoundry_core import (
+from linguafoundry_core.learning import (
     Exercise,
     LearningSessionManager,
     Lesson,
