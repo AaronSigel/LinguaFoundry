@@ -22,8 +22,9 @@ service includes an initial PostgreSQL database layer and Alembic migrations.
 3. Keep changes scoped to the relevant service, package, or documentation area.
 
 No application run command is available in the scaffold state. CI quality gates
-install `requirements-dev.txt` and run Markdown formatting checks, Python linting
-when Python files exist, tests when tests exist, and a committed-secret scan.
+install `requirements-dev.txt` and run Markdown formatting checks, Python
+linting when Python files exist, tests when tests exist, and a committed-secret
+scan.
 
 Install API database dependencies and run migrations with:
 

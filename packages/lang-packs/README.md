@@ -44,7 +44,8 @@ Language metadata includes:
 
 ## Content Rules
 
-- IDs are stable, lowercase slugs and should not be reused for different content.
+- IDs are stable, lowercase slugs and should not be reused for different
+  content.
 - `order` is zero-based within each sibling list.
 - Lessons must include at least one exercise.
 - Exercises must include at least one accepted answer and one explanation.
