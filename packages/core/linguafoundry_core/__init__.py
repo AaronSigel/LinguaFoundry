@@ -3,10 +3,14 @@
 from linguafoundry_core.learning import (
     AnswerResult,
     InMemoryLearningSessionStore,
+    InMemoryReviewStore,
     LearningSessionManager,
+    ReviewItem,
+    ReviewItemNotFoundError,
     SessionNotFoundError,
     SessionState,
     SessionStatus,
+    calculate_review_due_at,
 )
 from linguafoundry_core.models import (
     Attempt,
@@ -31,13 +35,17 @@ __all__ = [
     "Exercise",
     "ExerciseType",
     "InMemoryLearningSessionStore",
+    "InMemoryReviewStore",
     "Language",
     "LearningSession",
     "LearningSessionManager",
     "Lesson",
     "Progress",
+    "ReviewItem",
+    "ReviewItemNotFoundError",
     "SessionNotFoundError",
     "SessionState",
     "SessionStatus",
     "User",
+    "calculate_review_due_at",
 ]
