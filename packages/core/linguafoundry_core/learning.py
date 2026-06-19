@@ -140,8 +140,7 @@ class LearningSessionManager:
             raise ValueError("Cannot submit an answer to a completed session.")
 
         correct = _normalize(answer) in {
-            _normalize(expected_answer)
-            for expected_answer in exercise.correct_answers
+            _normalize(expected_answer) for expected_answer in exercise.correct_answers
         }
         next_answered_count = session.answered_count + 1
         next_correct_count = session.correct_count + int(correct)
