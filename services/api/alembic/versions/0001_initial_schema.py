@@ -42,7 +42,10 @@ def upgrade() -> None:
         sa.UniqueConstraint("telegram_id"),
     )
     op.create_index(
-        op.f("ix_users_telegram_id"), "users", ["telegram_id"], unique=False
+        op.f("ix_users_telegram_id"),
+        "users",
+        ["telegram_id"],
+        unique=False,
     )
 
     op.create_table(
@@ -54,7 +57,10 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("level", sa.String(length=32), nullable=True),
         sa.Column(
-            "position", sa.Integer(), server_default=sa.text("0"), nullable=False
+            "position",
+            sa.Integer(),
+            server_default=sa.text("0"),
+            nullable=False,
         ),
         sa.Column(
             "is_published",
@@ -99,7 +105,10 @@ def upgrade() -> None:
         ),
         sa.Column("answer", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column(
-            "position", sa.Integer(), server_default=sa.text("0"), nullable=False
+            "position",
+            sa.Integer(),
+            server_default=sa.text("0"),
+            nullable=False,
         ),
         sa.Column(
             "created_at",
@@ -198,7 +207,10 @@ def upgrade() -> None:
         sa.UniqueConstraint("user_id", "lesson_id", name="uq_progress_user_lesson"),
     )
     op.create_index(
-        op.f("ix_progress_lesson_id"), "progress", ["lesson_id"], unique=False
+        op.f("ix_progress_lesson_id"),
+        "progress",
+        ["lesson_id"],
+        unique=False,
     )
     op.create_index(op.f("ix_progress_user_id"), "progress", ["user_id"], unique=False)
 

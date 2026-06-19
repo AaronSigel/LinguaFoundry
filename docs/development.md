@@ -14,7 +14,17 @@ package metadata lives in `pyproject.toml`; there is no dependency lockfile yet.
 1. Create a virtual environment and install the project when working on Python
    services:
 
-   ```sh
+1. Copy `.env.example` to `.env` if local environment values are needed.
+
+1. Create a virtual environment and install the project when working on Python
+   services:
+
+1. Copy `.env.example` to `.env` if local environment values are needed.
+
+1. Create a virtual environment and install the project when working on Python
+   services:
+
+   ```shell
    python -m pip install -e .
    python -m pip install -r requirements-dev.txt
    ```
@@ -23,7 +33,7 @@ package metadata lives in `pyproject.toml`; there is no dependency lockfile yet.
 
 Run the API service locally with:
 
-```sh
+```shell
 python -m uvicorn services.api.app.main:app --reload
 ```
 
@@ -42,7 +52,7 @@ The scaffold CI installs `requirements-dev.txt` and runs these baseline gates:
 
 Run the focused API tests with:
 
-```sh
+```shell
 pytest services/api/tests
 ```
 

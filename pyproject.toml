@@ -9,8 +9,11 @@ description = "Modular language learning platform scaffold."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.13,<2",
+    "asyncpg>=0.29,<1",
     "fastapi>=0.115,<1",
     "pydantic-settings>=2,<3",
+    "SQLAlchemy>=2.0,<3",
     "uvicorn[standard]>=0.30,<1",
 ]
 

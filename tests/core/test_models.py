@@ -14,6 +14,8 @@ from linguafoundry_core import (
     Lesson,
     Progress,
     User,
+    UserProgressStats,
+    calculate_user_progress_stats,
 )
 
 
@@ -110,3 +112,92 @@ def test_completed_progress_requires_all_exercises() -> None:
 def test_empty_required_values_are_rejected() -> None:
     with pytest.raises(ValueError, match="display_name must not be empty"):
         User(id="user-1", display_name=" ")
+
+
+def test_user_progress_stats_are_calculated_from_attempts_and_progress() -> None:
+    first_attempt_at = datetime(2026, 1, 1, 9, tzinfo=timezone.utc)
+    last_attempt_at = datetime(2026, 1, 2, 10, tzinfo=timezone.utc)
+    progress_attempt_at = datetime(2026, 1, 3, 11, tzinfo=timezone.utc)
+
+    stats = calculate_user_progress_stats(
+        "user-1",
+        attempts=(
+            Attempt(
+                id="attempt-1",
+                user_id="user-1",
+                exercise_id="exercise-1",
+                submitted_answer="hola",
+                result=AttemptResult.CORRECT,
+                attempted_at=first_attempt_at,
+            ),
+            Attempt(
+                id="attempt-2",
+                user_id="user-1",
+                exercise_id="exercise-2",
+                submitted_answer="adios",
+                result=AttemptResult.INCORRECT,
+                attempted_at=last_attempt_at,
+            ),
+            Attempt(
+                id="attempt-3",
+                user_id="user-1",
+                exercise_id="exercise-3",
+                submitted_answer="",
+                result=AttemptResult.SKIPPED,
+                attempted_at=progress_attempt_at,
+            ),
+            Attempt(
+                id="attempt-other",
+                user_id="user-2",
+                exercise_id="exercise-1",
+                submitted_answer="hola",
+                result=AttemptResult.CORRECT,
+            ),
+        ),
+        progress_entries=(
+            Progress(
+                user_id="user-1",
+                lesson_id="lesson-1",
+                status=CompletionStatus.COMPLETED,
+                completed_exercises=2,
+                total_exercises=2,
+                last_attempt_at=last_attempt_at,
+            ),
+            Progress(
+                user_id="user-1",
+                lesson_id="lesson-2",
+                status=CompletionStatus.IN_PROGRESS,
+                completed_exercises=1,
+                total_exercises=3,
+                last_attempt_at=progress_attempt_at,
+            ),
+            Progress(
+                user_id="user-2",
+                lesson_id="lesson-3",
+                status=CompletionStatus.COMPLETED,
+                completed_exercises=1,
+                total_exercises=1,
+            ),
+        ),
+    )
+
+    assert stats == UserProgressStats(
+        user_id="user-1",
+        answer_count=2,
+        accuracy=0.5,
+        completed_lessons=1,
+        active_repetitions=1,
+        last_activity_at=progress_attempt_at,
+    )
+    assert stats.accuracy_percent == 50.0
+
+
+def test_user_progress_stats_defaults_for_no_activity() -> None:
+    stats = calculate_user_progress_stats("user-1")
+
+    assert stats == UserProgressStats(user_id="user-1")
+
+
+def test_user_progress_stats_reject_invalid_values() -> None:
+    with pytest.raises(ValueError, match="accuracy must be between"):
+        UserProgressStats(user_id="user-1", accuracy=1.1)

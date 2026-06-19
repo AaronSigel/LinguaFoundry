@@ -1,1 +1,1 @@
-"""Telegram bot service for LinguaFoundry."""
+"""Telegram bot service package."""

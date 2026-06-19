@@ -11,6 +11,12 @@ Owns SRS and domain logic for LinguaFoundry.
 - submit and check an answer with `submit_answer`
 - finish a lesson with `complete_lesson`
 
+Incorrect answers create lightweight review items in the manager's review store.
+Use `get_due_review_items` when callers need scheduling metadata, or
+`get_due_review_exercises` when callers only need exercises ready for repeat
+practice. Review dates are calculated by `calculate_review_due_at` with simple
+1, 3, 7, and 14 day intervals.
+
 The initial implementation uses plain dataclasses and an in-memory store so
 service layers can adapt it to bot, API, or durable persistence concerns later.
 
@@ -34,6 +40,8 @@ The `linguafoundry_core` package exposes the base learning domain model:
 - `Attempt`
 - `LearningSession`
 - `Progress`
+- `UserProgressStats`
+- `calculate_user_progress_stats`
 - `CompletionStatus`
 
 ## Verification

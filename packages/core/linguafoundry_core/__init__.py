@@ -1,4 +1,4 @@
-"""Core domain logic for LinguaFoundry."""
+"""Core domain model and learning flow primitives for LinguaFoundry."""
 
 from linguafoundry_core.learning import (
     AnswerResult,
@@ -6,9 +6,14 @@ from linguafoundry_core.learning import (
     Exercise as LearningExercise,
     LearningSessionManager,
     Lesson as LearningLesson,
+    InMemoryReviewStore,
+    LearningSessionManager,
+    ReviewItem,
+    ReviewItemNotFoundError,
     SessionNotFoundError,
     SessionState,
     SessionStatus,
+    calculate_review_due_at,
 )
 from linguafoundry_core.models import (
     Attempt,
@@ -22,7 +27,10 @@ from linguafoundry_core.models import (
     Lesson,
     Progress,
     User,
+    UserProgressStats,
+    calculate_user_progress_stats,
 )
+from linguafoundry_core.review import ReviewCard, build_mistake_review_queue
 
 __all__ = [
     "AnswerResult",
@@ -33,15 +41,24 @@ __all__ = [
     "Exercise",
     "ExerciseType",
     "InMemoryLearningSessionStore",
+    "InMemoryReviewStore",
     "Language",
     "LearningExercise",
     "LearningLesson",
     "LearningSessionManager",
     "LearningSession",
+    "LearningSessionManager",
     "Lesson",
     "Progress",
+    "ReviewCard",
+    "ReviewItem",
+    "ReviewItemNotFoundError",
     "SessionNotFoundError",
     "SessionState",
     "SessionStatus",
     "User",
+    "build_mistake_review_queue",
+    "calculate_review_due_at",
+    "UserProgressStats",
+    "calculate_user_progress_stats",
 ]

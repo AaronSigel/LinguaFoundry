@@ -1,12 +1,23 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 
 from linguafoundry_core import (
     LearningExercise as Exercise,
     LearningLesson as Lesson,
     LearningSessionManager,
+from linguafoundry_core.learning import (
+    Exercise,
+    LearningSessionManager,
+    Lesson,
+    calculate_review_due_at,
     SessionNotFoundError,
     SessionStatus,
 )
+from linguafoundry_core.learning import Exercise, Lesson
+
+
+FROZEN_NOW = datetime(2026, 6, 19, 12, 0, tzinfo=timezone.utc)
 
 
 def test_learning_session_runs_through_lesson_flow() -> None:
@@ -52,11 +63,129 @@ def test_learning_session_runs_through_lesson_flow() -> None:
     assert manager.get_current_exercise(session.id) is None
 
 
+def test_incorrect_answer_creates_review_item_due_after_one_day() -> None:
+    lesson = Lesson(
+        id="intro",
+        title="Intro",
+        exercises=(
+            Exercise(
+                id="hello",
+                prompt="Translate: hello",
+                correct_answers=("hola",),
+            ),
+        ),
+    )
+    manager = LearningSessionManager(now=lambda: FROZEN_NOW)
+    session = manager.start_lesson(lesson)
+
+    result = manager.submit_answer(session.id, "bonjour")
+    review_items = manager.get_due_review_items(
+        session.id,
+        due_at=FROZEN_NOW + timedelta(days=1),
+    )
+
+    assert result.correct is False
+    assert len(review_items) == 1
+    assert review_items[0].exercise == lesson.exercises[0]
+    assert review_items[0].created_at == FROZEN_NOW
+    assert review_items[0].due_at == FROZEN_NOW + timedelta(days=1)
+    assert review_items[0].incorrect_count == 1
+
+
+def test_due_review_exercises_excludes_items_before_due_date() -> None:
+    lesson = Lesson(
+        id="intro",
+        title="Intro",
+        exercises=(
+            Exercise(
+                id="hello",
+                prompt="Translate: hello",
+                correct_answers=("hola",),
+            ),
+        ),
+    )
+    manager = LearningSessionManager(now=lambda: FROZEN_NOW)
+    session = manager.start_lesson(lesson)
+    manager.submit_answer(session.id, "bonjour")
+
+    assert manager.get_due_review_exercises(session.id, due_at=FROZEN_NOW) == ()
+    assert manager.get_due_review_exercises(
+        session.id,
+        due_at=FROZEN_NOW + timedelta(days=1),
+    ) == (lesson.exercises[0],)
+
+
+def test_repeated_incorrect_answer_reschedules_existing_review_item() -> None:
+    timestamps = iter(
+        (
+            FROZEN_NOW,
+            FROZEN_NOW + timedelta(hours=1),
+        )
+    )
+    lesson = Lesson(
+        id="intro",
+        title="Intro",
+        exercises=(
+            Exercise(
+                id="hello",
+                prompt="Translate: hello",
+                correct_answers=("hola",),
+            ),
+            Exercise(
+                id="hello",
+                prompt="Translate again: hello",
+                correct_answers=("hola",),
+            ),
+        ),
+    )
+    manager = LearningSessionManager(now=lambda: next(timestamps))
+
+    session = manager.start_lesson(lesson)
+    manager.submit_answer(session.id, "bonjour")
+    first_review_item = manager.get_due_review_items(
+        session.id,
+        due_at=FROZEN_NOW + timedelta(days=1),
+    )[0]
+
+    manager.submit_answer(session.id, "ciao")
+    review_items = manager.get_due_review_items(
+        session.id,
+        due_at=FROZEN_NOW + timedelta(days=3, hours=1),
+    )
+
+    assert len(review_items) == 1
+    assert review_items[0].id == first_review_item.id
+    assert review_items[0].created_at == FROZEN_NOW
+    assert review_items[0].due_at == FROZEN_NOW + timedelta(days=3, hours=1)
+    assert review_items[0].incorrect_count == 2
+
+
+def test_review_due_date_uses_srs_lite_intervals() -> None:
+    assert calculate_review_due_at(FROZEN_NOW, incorrect_count=1) == (
+        FROZEN_NOW + timedelta(days=1)
+    )
+    assert calculate_review_due_at(FROZEN_NOW, incorrect_count=2) == (
+        FROZEN_NOW + timedelta(days=3)
+    )
+    assert calculate_review_due_at(FROZEN_NOW, incorrect_count=3) == (
+        FROZEN_NOW + timedelta(days=7)
+    )
+    assert calculate_review_due_at(FROZEN_NOW, incorrect_count=99) == (
+        FROZEN_NOW + timedelta(days=14)
+    )
+
+
 def test_complete_lesson_stops_exercise_delivery() -> None:
     lesson = Lesson(
         id="intro",
         title="Intro",
-        exercises=(Exercise(id="one", prompt="One", correct_answers=("one",)),),
+        exercises=(
+            Exercise(
+                id="one",
+                prompt="One",
+                correct_answers=("one",),
+            ),
+        ),
     )
     manager = LearningSessionManager()
     session = manager.start_lesson(lesson)
@@ -82,14 +211,30 @@ def test_unknown_session_raises_domain_error() -> None:
         (
             "",
             "Title",
-            (Exercise(id="one", prompt="Prompt", correct_answers=("a",)),),
+            (
+                Exercise(
+                    id="one",
+                    prompt="Prompt",
+                    correct_answers=("a",),
+                ),
+            ),
         ),
         (
             "lesson",
             "",
-            (Exercise(id="one", prompt="Prompt", correct_answers=("a",)),),
+            (
+                Exercise(
+                    id="one",
+                    prompt="Prompt",
+                    correct_answers=("a",),
+                ),
+            ),
         ),
-        ("lesson", "Title", ()),
+        (
+            "lesson",
+            "Title",
+            (),
+        ),
     ],
 )
 def test_lesson_requires_identity_title_and_exercises(

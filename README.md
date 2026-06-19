@@ -25,17 +25,21 @@ No application run command is available in the scaffold state. CI quality
 gates install `requirements-dev.txt` and run Markdown formatting checks,
 Python linting when Python files exist, tests when tests exist, and a
 committed-secret scan.
+No application run command is available in the scaffold state. CI quality gates
+install `requirements-dev.txt` and run Markdown formatting checks, Python
+linting when Python files exist, tests when tests exist, and a committed-secret
+scan.
 
 Install API database dependencies and run migrations with:
 
-```sh
+```shell
 python -m pip install -r services/api/requirements.txt
 alembic -c services/api/alembic.ini upgrade head
 ```
 
 Run the API service locally with:
 
-```sh
+```shell
 python -m uvicorn services.api.app.main:app --reload
 ```
 
@@ -47,7 +51,7 @@ PYTHONPATH=packages/core:. python -m services.bot.app
 
 Run the focused API tests with:
 
-```sh
+```shell
 pytest services/api/tests
 ```
 

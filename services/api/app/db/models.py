@@ -227,7 +227,9 @@ class Progress(Base):
         index=True,
     )
     status: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="not_started"
+        String(32),
+        nullable=False,
+        default="not_started",
     )
     completed_exercises: Mapped[int] = mapped_column(
         Integer,
