@@ -2,15 +2,20 @@
 
 ## Current State
 
-LinguaFoundry is in scaffold state with an initial FastAPI API service. There is
-no Python package build metadata or dependency lockfile yet.
+LinguaFoundry is in scaffold state with an initial FastAPI API service. Python
+package metadata lives in `pyproject.toml`; there is no dependency lockfile yet.
 
 ## Local Setup
 
 1. Clone the repository.
 1. Copy `.env.example` to `.env` if local environment values are needed.
-1. Add a virtual environment only when implementation code introduces Python
-   dependencies.
+1. Create a virtual environment and install the project when working on Python
+   services:
+
+   ```sh
+   python -m pip install -e .
+   python -m pip install -r requirements-dev.txt
+   ```
 
 ## Running
 
