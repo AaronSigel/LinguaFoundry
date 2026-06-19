@@ -5,10 +5,7 @@ from linguafoundry_core import (
     SessionNotFoundError,
     SessionStatus,
 )
-from linguafoundry_core.learning import (
-    Exercise,
-    Lesson,
-)
+from linguafoundry_core.learning import Exercise, Lesson
 
 
 def test_learning_session_runs_through_lesson_flow() -> None:
