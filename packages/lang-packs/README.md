@@ -65,7 +65,11 @@ Supported exercise types are:
 
 ## Example
 
-See `examples/es-a1-greetings.json` for a minimal Spanish A1 pack.
+Available example packs:
+
+- `examples/es-a1-greetings.json`: minimal Spanish A1 greetings pack.
+- `examples/fr-a1-seed.json`: minimal French A1 seed pack with several
+  lessons for manual learning-flow testing.
 
 ## Verification
 
@@ -74,4 +78,5 @@ Use the standard library to confirm example files are valid JSON:
 
 ```shell
 python -m json.tool packages/lang-packs/examples/es-a1-greetings.json >/dev/null
+python -m json.tool packages/lang-packs/examples/fr-a1-seed.json >/dev/null
 ```

@@ -47,14 +47,14 @@ jobs:
           set -euo pipefail
           python -m pip install -r requirements-dev.txt
 
-      # - name: Check Markdown formatting
-      #   shell: bash
-      #   run: |
-      #     set -euo pipefail
-      #     find . -path ./.git -prune -o \
-      #       -path './.github/ISSUE_TEMPLATE/*' -prune -o \
-      #       -name '*.md' -print0 \
-      #       | xargs -0 mdformat --check
+      - name: Check Markdown formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -path ./.git -prune -o \
+            -path './.github/ISSUE_TEMPLATE/*' -prune -o \
+            -name '*.md' -print0 \
+            | xargs -0 mdformat --check
 
       - name: Run Ruff when Python files exist
         shell: bash

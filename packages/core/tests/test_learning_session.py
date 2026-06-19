@@ -1,6 +1,8 @@
 import pytest
 
 from linguafoundry_core import (
+from linguafoundry_core.learning import (
+    Exercise,
     LearningSessionManager,
     SessionNotFoundError,
     SessionStatus,
@@ -56,6 +58,13 @@ def test_complete_lesson_stops_exercise_delivery() -> None:
         id="intro",
         title="Intro",
         exercises=(Exercise(id="one", prompt="One", correct_answers=("one",)),),
+        exercises=(
+            Exercise(
+                id="one",
+                prompt="One",
+                correct_answers=("one",),
+            ),
+        ),
     )
     manager = LearningSessionManager()
     session = manager.start_lesson(lesson)
@@ -81,12 +90,24 @@ def test_unknown_session_raises_domain_error() -> None:
         (
             "",
             "Title",
-            (Exercise(id="one", prompt="Prompt", correct_answers=("a",)),),
+            (
+                Exercise(
+                    id="one",
+                    prompt="Prompt",
+                    correct_answers=("a",),
+                ),
+            ),
         ),
         (
             "lesson",
             "",
-            (Exercise(id="one", prompt="Prompt", correct_answers=("a",)),),
+            (
+                Exercise(
+                    id="one",
+                    prompt="Prompt",
+                    correct_answers=("a",),
+                ),
+            ),
         ),
         (
             "lesson",

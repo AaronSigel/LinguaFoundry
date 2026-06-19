@@ -34,7 +34,10 @@ class Settings:
     """Environment-backed API settings."""
 
     database_url: str = field(
-        default_factory=lambda: os.getenv("DATABASE_URL", _default_database_url())
+        default_factory=lambda: os.getenv(
+            "DATABASE_URL",
+            "postgresql+asyncpg://localhost:5432/linguafoundry",
+        )
     )
     database_echo: bool = field(default_factory=lambda: _env_bool("DATABASE_ECHO"))
 
