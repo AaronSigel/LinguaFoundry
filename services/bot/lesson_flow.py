@@ -59,8 +59,7 @@ class TelegramLessonFlow:
             lesson = self._catalog.get(lesson_id)
         except LessonNotFoundError:
             return (
-                f"Lesson '{lesson_id}' was not found.\n\n"
-                f"{self._format_lesson_list()}"
+                f"Lesson '{lesson_id}' was not found.\n\n{self._format_lesson_list()}"
             )
 
         session = self._sessions.start_lesson(lesson)

@@ -75,8 +75,5 @@ def test_language_pack_multiple_choice_prompt_includes_options() -> None:
     exercise = lesson.exercises[0]
 
     assert exercise.prompt == (
-        "Which word means hello?\n"
-        "- hola\n"
-        "- adios\n"
-        "Choose one answer."
+        "Which word means hello?\n- hola\n- adios\nChoose one answer."
     )

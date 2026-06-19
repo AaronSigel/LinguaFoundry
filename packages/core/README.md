@@ -18,8 +18,10 @@ service layers can adapt it to bot, API, or durable persistence concerns later.
 
 From the repository root:
 
-```bash
+```sh
 PYTHONPATH=packages/core pytest packages/core/tests
+```
+
 ## Public Interface
 
 The `linguafoundry_core` package exposes the base learning domain model:
