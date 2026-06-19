@@ -2,7 +2,9 @@
 
 This directory stores Architecture Decision Records for LinguaFoundry.
 
-Create a new ADR when a decision affects architecture, ownership boundaries, persistence, integrations, deployment, security posture, or long-term development workflow.
+Create a new ADR when a decision affects architecture, ownership boundaries,
+persistence, integrations, deployment, security posture, or long-term
+development workflow.
 
 ## Naming
 

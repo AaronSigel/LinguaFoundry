@@ -18,12 +18,13 @@ service includes an initial PostgreSQL database layer and Alembic migrations.
 ## Getting Started
 
 1. Copy `.env.example` to `.env` for local configuration.
-2. Read `AGENTS.md` before making automated changes.
-3. Keep changes scoped to the relevant service, package, or documentation area.
+1. Read `AGENTS.md` before making automated changes.
+1. Keep changes scoped to the relevant service, package, or documentation area.
 
 No application run command is available in the scaffold state. CI quality gates
-install `requirements-dev.txt` and run Markdown formatting checks, Python linting
-when Python files exist, tests when tests exist, and a committed-secret scan.
+install `requirements-dev.txt` and run Markdown formatting checks, Python
+linting when Python files exist, tests when tests exist, and a committed-secret
+scan.
 
 Install API database dependencies and run migrations with:
 
@@ -47,7 +48,8 @@ pytest services/api/tests
 ## Development Scope
 
 - Prefer small, reviewed changes that preserve the monorepo boundaries.
-- Do not introduce external services, secrets, or infrastructure without an approved task.
+- Do not introduce external services, secrets, or infrastructure without an
+  approved task.
 - Do not commit generated files, local virtual environments, or `.env` files.
 - Keep public interfaces documented when adding package or service code.
 

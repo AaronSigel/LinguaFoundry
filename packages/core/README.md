@@ -20,6 +20,8 @@ From the repository root:
 
 ```bash
 PYTHONPATH=packages/core pytest packages/core/tests
+```
+
 ## Public Interface
 
 The `linguafoundry_core` package exposes the base learning domain model:
