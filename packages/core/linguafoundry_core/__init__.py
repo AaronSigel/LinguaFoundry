@@ -21,6 +21,7 @@ from linguafoundry_core.models import (
     Progress,
     User,
 )
+from linguafoundry_core.review import ReviewCard, build_mistake_review_queue
 
 __all__ = [
     "AnswerResult",
@@ -36,8 +37,10 @@ __all__ = [
     "LearningSessionManager",
     "Lesson",
     "Progress",
+    "ReviewCard",
     "SessionNotFoundError",
     "SessionState",
     "SessionStatus",
     "User",
+    "build_mistake_review_queue",
 ]
