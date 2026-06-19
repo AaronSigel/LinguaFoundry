@@ -49,5 +49,5 @@ The `linguafoundry_core` package exposes the base learning domain model:
 Run the focused core tests from the repository root:
 
 ```sh
-pytest tests/core
+pytest tests/core packages/core/tests
 ```

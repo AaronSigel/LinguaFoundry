@@ -10,11 +10,10 @@ from linguafoundry_core.learning import (
     Exercise,
     LearningSessionManager,
     Lesson,
-    calculate_review_due_at,
     SessionNotFoundError,
     SessionStatus,
+    calculate_review_due_at,
 )
-from linguafoundry_core.learning import Exercise, Lesson
 
 
 FROZEN_NOW = datetime(2026, 6, 19, 12, 0, tzinfo=timezone.utc)
