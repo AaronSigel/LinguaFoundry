@@ -129,6 +129,7 @@ pytest services/api/tests
 
 - [Architecture](docs/architecture.md)
 - [Development Guide](docs/development.md)
+- [Future Backlog](docs/future-backlog.md)
 - [Testing Guide](docs/testing.md)
 - [MVP Smoke Scenario](docs/mvp-smoke-scenario.md)
 - [Architecture Decision Records](docs/adr/README.md)
