@@ -1,28 +1,42 @@
 import asyncio
-from types import SimpleNamespace
+
+import httpx
 
 from services.api.app.config import Settings
+from services.api.app.dependencies import get_domain_context
 from services.api.app.main import create_app
-from services.api.app.routers.health import health_check
 
 
 def test_health_endpoint_returns_environment_metadata() -> None:
-    settings = Settings(
-        app_env="test",
-        log_level="DEBUG",
-        service_name="test-api",
-    )
-    request = SimpleNamespace(
-        app=SimpleNamespace(state=SimpleNamespace(settings=settings))
+    app = create_app(
+        Settings(
+            app_env="test",
+            log_level="DEBUG",
+            service_name="test-api",
+        )
     )
 
-    response = asyncio.run(health_check(request, {"status": "not_configured"}))
+    async def domain_context() -> dict[str, str]:
+        return {"status": "ready"}
 
-    assert response.model_dump() == {
+    app.dependency_overrides[get_domain_context] = domain_context
+
+    async def request_health() -> httpx.Response:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.get("/health")
+
+    response = asyncio.run(request_health())
+
+    assert response.status_code == 200
+    assert response.json() == {
         "status": "ok",
         "service": "test-api",
         "environment": "test",
-        "domain": "not_configured",
+        "domain": "ready",
     }
 
 
