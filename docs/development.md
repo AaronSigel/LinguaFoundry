@@ -46,6 +46,12 @@ Run the focused API tests with:
 pytest services/api/tests
 ```
 
+Run the MVP smoke contract test with:
+
+```shell
+pytest services/api/tests/test_mvp_smoke_contract.py
+```
+
 When more code is added, prefer focused tests close to the changed package or
 service. Document configured commands such as `pytest`, `ruff`, formatting, and
 type checking before relying on them in automation.

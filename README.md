@@ -100,3 +100,4 @@ pytest services/api/tests
 
 - [Architecture](docs/architecture.md)
 - [Development Guide](docs/development.md)
+- [MVP Smoke Scenario](docs/mvp-smoke-scenario.md)
