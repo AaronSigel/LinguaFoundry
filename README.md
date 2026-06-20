@@ -1,29 +1,46 @@
 # LinguaFoundry
 
 LinguaFoundry is an open-source modular language learning platform with a
-Telegram-first interface, SRS practice, and extensible language packs.
+Telegram-first interface, lesson practice, lightweight mistake review, and
+extensible language packs.
 
-This repository is currently a scaffold for agent-assisted development. It
-defines the intended package boundaries and baseline operating rules. The API
-service includes an initial PostgreSQL database layer and Alembic migrations.
+The repository now contains a runnable baseline application:
+
+- a FastAPI backend with health checks, learning workflow endpoints,
+  PostgreSQL persistence, and Alembic migrations;
+- a Telegram polling bot that lists lessons, runs lesson sessions, reports
+  progress, and exposes review commands;
+- shared core domain logic for lesson flow, progress, and review scheduling;
+- example language packs and a JSON schema for content validation.
 
 ## Repository Layout
 
 - `services/bot`: Telegram-facing entrypoint for the Stage 1 MVP.
-- `services/api`: FastAPI backend skeleton with a health endpoint.
+- `services/api`: FastAPI backend with learning endpoints and database
+  migrations.
 - `packages/core`: Shared domain logic, including SRS behavior.
 - `packages/lang-packs`: Language content schemas and language packs.
 - `docs`: Project documentation and development notes.
 
 ## Getting Started
 
+1. Create a virtual environment with Python 3.12 or newer.
+
+1. Install the project and development tools:
+
+   ```shell
+   python -m pip install -e .
+   python -m pip install -r requirements-dev.txt
+   ```
+
 1. Copy `.env.example` to `.env` for local configuration.
+
 1. Read `AGENTS.md` before making automated changes.
+
 1. Keep changes scoped to the relevant service, package, or documentation area.
 
-CI quality gates install `requirements-dev.txt` and run Markdown formatting
-checks, Python linting when Python files exist, tests when tests exist, and a
-committed-secret scan.
+CI quality gates install `requirements-dev.txt` and run Markdown formatting,
+Python formatting, linting, tests, and a committed-secret scan.
 
 ## Docker Compose
 
@@ -63,6 +80,12 @@ docker compose up db api
 The API is available at `http://localhost:8000`, and PostgreSQL is available on
 `localhost:5432` by default.
 
+Check API readiness with:
+
+```shell
+curl http://localhost:8000/health
+```
+
 Install API database dependencies and run migrations with:
 
 ```shell
@@ -82,7 +105,13 @@ Run the Telegram bot lesson flow locally after setting `TELEGRAM_BOT_TOKEN`:
 PYTHONPATH=packages/core:. python -m services.bot.app.main
 ```
 
-Run the focused API tests with:
+Run all automated tests with:
+
+```shell
+pytest
+```
+
+Run focused API tests with:
 
 ```shell
 pytest services/api/tests
@@ -100,4 +129,6 @@ pytest services/api/tests
 
 - [Architecture](docs/architecture.md)
 - [Development Guide](docs/development.md)
+- [Testing Guide](docs/testing.md)
 - [MVP Smoke Scenario](docs/mvp-smoke-scenario.md)
+- [Architecture Decision Records](docs/adr/README.md)

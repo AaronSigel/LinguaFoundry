@@ -2,8 +2,10 @@
 
 ## Current State
 
-LinguaFoundry is in scaffold state with an initial FastAPI API service. Python
-package metadata lives in `pyproject.toml`; there is no dependency lockfile yet.
+LinguaFoundry has a runnable Python baseline with a FastAPI API service,
+Telegram bot service, shared core package, language-pack examples, PostgreSQL
+models, and Alembic migrations. Python package metadata lives in
+`pyproject.toml`; there is no dependency lockfile yet.
 
 ## Local Setup
 
@@ -27,18 +29,39 @@ Run the API service locally with:
 python -m uvicorn services.api.app.main:app --reload
 ```
 
+Run the Telegram bot locally after setting `TELEGRAM_BOT_TOKEN`:
+
+```shell
+python -m services.bot.app.main
+```
+
+Run PostgreSQL, API migrations, the API, and the bot through Docker Compose:
+
+```shell
+docker compose up
+```
+
 Service-specific commands should be documented in the relevant service README
 and mirrored in the root README when they are common development paths.
 
 ## Testing and Quality
 
-The scaffold CI installs `requirements-dev.txt` and runs these baseline gates:
+CI installs `requirements-dev.txt` and runs these baseline gates:
 
 - `mdformat --check .` for Markdown formatting.
 - `ruff format --check .` and `ruff check .` when Python files exist.
 - `pytest` when tests exist.
 - `detect-secrets scan --all-files` with a failing check for potential
   committed secrets.
+
+See `docs/testing.md` for the focused test commands used by each package and
+service.
+
+Run the full test suite with:
+
+```shell
+pytest
+```
 
 Run the focused API tests with:
 
