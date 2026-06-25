@@ -222,7 +222,6 @@ async def import_language_pack(session: AsyncSession, pack: JsonObject) -> Impor
                 slug=record.stable_id,
             )
             session.add(lesson)
-            await session.flush()
             stats += ImportStats(lessons_created=1)
         else:
             stats += ImportStats(lessons_updated=1)
@@ -235,6 +234,9 @@ async def import_language_pack(session: AsyncSession, pack: JsonObject) -> Impor
         lesson.level = record.level
         lesson.position = record.position
         lesson.is_published = True
+
+        if lesson.id is None:
+            await session.flush()
 
         for exercise_record in record.exercises:
             exercise = await session.scalar(
