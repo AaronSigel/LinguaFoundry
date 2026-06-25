@@ -172,6 +172,41 @@ class MatchingOptionIdApiClient(HealthyApiClient):
         }
 
 
+class FollowUpMultipleChoiceApiClient(HealthyApiClient):
+    def current_exercise(self, session_id: str) -> dict[str, object]:
+        assert session_id == "session-1"
+        if not self.answers:
+            return {
+                "session_id": session_id,
+                "status": "in_progress",
+                "exercise": {
+                    "id": "exercise-1",
+                    "slug": "hello",
+                    "kind": "text_input",
+                    "prompt": "Translate: hello",
+                    "payload": {},
+                    "position": 1,
+                },
+            }
+        return {
+            "session_id": session_id,
+            "status": "in_progress",
+            "exercise": {
+                "id": "exercise-2",
+                "slug": "choose-goodbye",
+                "kind": "multiple_choice",
+                "prompt": "Choose the Spanish word for goodbye.",
+                "payload": {
+                    "options": [
+                        {"id": "hello", "text": "hola"},
+                        {"id": "goodbye", "text": "adios"},
+                    ]
+                },
+                "position": 2,
+            },
+        }
+
+
 def test_start_command_sends_welcome_message() -> None:
     telegram = RecordingTelegramClient()
     bot = TelegramBotAdapter(telegram, HealthyApiClient())
@@ -309,6 +344,33 @@ def test_lesson_command_does_not_duplicate_matching_multiple_choice_ids() -> Non
             "2. adios",
         )
     ]
+
+
+def test_text_answer_renders_follow_up_multiple_choice_options() -> None:
+    telegram = RecordingTelegramClient()
+    bot = TelegramBotAdapter(telegram, FollowUpMultipleChoiceApiClient())
+
+    bot.process_update(
+        {
+            "message": {
+                "chat": {"id": 123},
+                "from": {"id": 456},
+                "text": "/lesson intro",
+            }
+        }
+    )
+    handled = bot.process_update({"message": {"chat": {"id": 123}, "text": "hola"}})
+
+    assert handled is True
+    assert telegram.sent_messages[-1] == (
+        123,
+        "Correct.\n\n"
+        "Exercise 2/2\n"
+        "Choose the Spanish word for goodbye.\n"
+        "Options:\n"
+        "1. hello - hola\n"
+        "2. goodbye - adios",
+    )
 
 
 def test_text_answer_after_completed_lesson_requires_new_lesson() -> None:
