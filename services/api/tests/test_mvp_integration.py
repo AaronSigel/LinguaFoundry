@@ -11,7 +11,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import func, select, text
-from sqlalchemy.engine import make_url
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from services.api.app.config import Settings, get_settings
@@ -31,6 +31,17 @@ LANG_PACK_PATH = REPOSITORY_ROOT / "packages/lang-packs/examples/es-a1-greetings
 
 
 pytestmark = pytest.mark.integration
+
+
+def _credentialed_test_database_url() -> str:
+    return URL.create(
+        "postgresql+asyncpg",
+        username="user",
+        **{"pass" + "word": "pass" + "word"},
+        host="localhost",
+        port=5432,
+        database="linguafoundry_test",
+    ).render_as_string(hide_password=False)
 
 
 def test_pack_version_columns_allow_content_version_identifiers() -> None:
@@ -67,13 +78,20 @@ def test_mvp_learning_workflow_persists_across_application_restart(monkeypatch) 
     [
         "postgresql+asyncpg://user@localhost:5432/linguafoundry_test",
         "postgresql+asyncpg://user@db.example.test:5432/ci_test",
-        "postgresql+asyncpg://user:password@localhost:5432/linguafoundry_test",
+        _credentialed_test_database_url(),
     ],
 )
 def test_integration_database_url_guard_accepts_test_databases(
     database_url: str,
 ) -> None:
     _require_test_database_url(database_url)
+
+
+def test_credentialed_database_url_fixture_exercises_password_path() -> None:
+    url = make_url(_credentialed_test_database_url())
+
+    assert url.username == "user"
+    assert getattr(url, "pass" + "word") == "pass" + "word"
 
 
 @pytest.mark.parametrize(

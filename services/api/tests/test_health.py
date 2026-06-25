@@ -6,6 +6,7 @@ from fastapi.routing import APIRoute
 
 from services.api.app.config import Settings
 from services.api.app.main import create_app
+from services.api.app.routers.health import router as health_router
 
 
 def test_health_endpoint_returns_environment_metadata() -> None:
@@ -45,14 +46,16 @@ def test_openapi_schema_includes_health_endpoint() -> None:
 
 
 def test_health_endpoint_has_no_dependency_hooks() -> None:
-    app = create_app(Settings(app_env="test"))
-
-    health_route = next(
+    health_routes = [
         route
-        for route in app.routes
+        for route in health_router.routes
         if isinstance(route, APIRoute) and route.path == "/health"
-    )
+    ]
 
+    assert len(health_routes) == 1
+    health_route = health_routes[0]
+
+    assert health_route.methods == {"GET"}
     assert health_route.dependant.dependencies == []
 
 
