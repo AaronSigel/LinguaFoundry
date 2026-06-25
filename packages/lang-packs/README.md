@@ -10,7 +10,8 @@ language. The canonical machine-readable contract lives in
 
 Each pack is organized as:
 
-1. Pack metadata: `schema_version`, `pack_id`, and target `language`.
+1. Pack metadata: `schema_version`, `pack_id`, `content_version`, and target
+   `language`.
 1. Levels: CEFR-aligned groups from `A1` through `C2`.
 1. Topics: thematic groups inside a level, such as greetings or travel.
 1. Lessons: ordered units inside a topic.
@@ -32,6 +33,8 @@ language pack
 
 - `schema_version`: Format version. Use `1.0`.
 - `pack_id`: Stable lowercase identifier, for example `es-core-a1`.
+- `content_version`: Version of the pack content. Increment it when lesson or
+  exercise content changes.
 - `language`: Target language metadata.
 - `levels`: One or more proficiency levels with topics and lessons.
 
@@ -90,8 +93,9 @@ Import packs into PostgreSQL after API migrations have run:
 python -m services.api.app.lang_packs packages/lang-packs/examples
 ```
 
-The importer is idempotent. It updates lessons by target language plus stable
-lesson slug, and updates exercises by stable lesson plus exercise slug. Stable
-lesson slugs are built from `pack_id`, level ID, topic ID, and lesson ID.
-Exercise payloads include a globally stable exercise ID derived from the stable
-lesson slug plus exercise ID.
+The importer is idempotent. It stores `content_version` as the language pack
+version used by learning sessions, updates lessons by pack ID plus content
+version plus stable lesson slug, and updates exercises by stable lesson plus
+exercise slug. Stable lesson slugs are built from `pack_id`, level ID, topic ID,
+and lesson ID. Exercise payloads include a globally stable exercise ID derived
+from the stable lesson slug plus exercise ID.

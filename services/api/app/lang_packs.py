@@ -51,12 +51,18 @@ class LessonImportRecord:
     stable_id: str
     language_code: str
     pack_id: str
-    pack_version: str
+    content_version: str
     title: str
     description: str | None
     level: str
     position: int
     exercises: tuple[ExerciseImportRecord, ...]
+
+    @property
+    def pack_version(self) -> str:
+        """Return the persisted pack version for existing API/database code."""
+
+        return self.content_version
 
 
 @dataclass(frozen=True)
@@ -149,6 +155,7 @@ def build_lesson_records(pack: JsonObject) -> tuple[LessonImportRecord, ...]:
 
     language_code = str(pack["language"]["code"])
     pack_id = str(pack["pack_id"])
+    content_version = str(pack["content_version"])
     lessons: list[LessonImportRecord] = []
     for level in pack["levels"]:
         level_id = str(level["id"])
@@ -178,7 +185,7 @@ def build_lesson_records(pack: JsonObject) -> tuple[LessonImportRecord, ...]:
                         stable_id=stable_lesson_id,
                         language_code=language_code,
                         pack_id=pack_id,
-                        pack_version=str(pack["schema_version"]),
+                        content_version=content_version,
                         title=str(lesson["title"]),
                         description=lesson.get("description"),
                         level=level_id,
@@ -210,7 +217,7 @@ async def import_language_pack(session: AsyncSession, pack: JsonObject) -> Impor
         lesson = await session.scalar(
             select(Lesson).where(
                 Lesson.pack_id == record.pack_id,
-                Lesson.pack_version == record.pack_version,
+                Lesson.pack_version == record.content_version,
                 Lesson.slug == record.stable_id,
             )
         )
@@ -218,7 +225,7 @@ async def import_language_pack(session: AsyncSession, pack: JsonObject) -> Impor
             lesson = Lesson(
                 language_code=record.language_code,
                 pack_id=record.pack_id,
-                pack_version=record.pack_version,
+                pack_version=record.content_version,
                 slug=record.stable_id,
             )
             session.add(lesson)
@@ -229,7 +236,7 @@ async def import_language_pack(session: AsyncSession, pack: JsonObject) -> Impor
         lesson.title = record.title
         lesson.language_code = record.language_code
         lesson.pack_id = record.pack_id
-        lesson.pack_version = record.pack_version
+        lesson.pack_version = record.content_version
         lesson.description = record.description
         lesson.level = record.level
         lesson.position = record.position
@@ -292,6 +299,7 @@ def _exercise_record(
     payload = {
         "stable_id": stable_exercise_id,
         "pack_id": pack["pack_id"],
+        "content_version": pack["content_version"],
         "level_id": level["id"],
         "topic_id": topic["id"],
         "lesson_id": lesson["id"],

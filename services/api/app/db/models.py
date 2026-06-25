@@ -134,6 +134,16 @@ class Lesson(Base):
         cascade="all, delete-orphan",
     )
 
+    @property
+    def content_version(self) -> str:
+        """Content version persisted in the legacy pack_version column."""
+
+        return self.pack_version
+
+    @content_version.setter
+    def content_version(self, value: str) -> None:
+        self.pack_version = value
+
 
 class Exercise(Base):
     """An individual practice item in a lesson."""
