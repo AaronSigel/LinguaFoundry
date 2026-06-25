@@ -10,11 +10,11 @@ import httpx
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy.engine import make_url
 from sqlalchemy import func, select
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from services.api.app.config import Settings
+from services.api.app.config import Settings, get_settings
 from services.api.app.db.database import get_session
 from services.api.app.db.models import Attempt, LearningSession, Progress, ReviewState
 from services.api.app.lang_packs import import_language_pack, load_language_pack
@@ -34,6 +34,7 @@ def test_mvp_learning_workflow_persists_across_application_restart(monkeypatch) 
 
     _require_test_database_url(database_url)
     monkeypatch.setenv("DATABASE_URL", database_url)
+    get_settings.cache_clear()
     alembic_config = Config(str(REPOSITORY_ROOT / "services/api/alembic.ini"))
     command.downgrade(alembic_config, "base")
     command.upgrade(alembic_config, "head")
@@ -42,14 +43,15 @@ def test_mvp_learning_workflow_persists_across_application_restart(monkeypatch) 
         asyncio.run(_run_mvp_learning_workflow(database_url))
     finally:
         command.downgrade(alembic_config, "base")
+        get_settings.cache_clear()
 
 
 @pytest.mark.parametrize(
     "database_url",
     [
-        "postgresql+asyncpg://localhost:5432/linguafoundry_test",
         "postgresql+asyncpg://user@localhost:5432/linguafoundry_test",
         "postgresql+asyncpg://user@db.example.test:5432/ci_test",
+        "postgresql+asyncpg://user:password@localhost:5432/linguafoundry_test",
     ],
 )
 def test_integration_database_url_guard_accepts_test_databases(
@@ -66,6 +68,7 @@ def test_integration_database_url_guard_accepts_test_databases(
         "sqlite+aiosqlite:///tmp/linguafoundry_test.db",
         "postgresql+asyncpg://localhost:5432/postgres",
         "postgresql+asyncpg://localhost:5432/",
+        "postgresql+asyncpg://localhost:5432/linguafoundry_test",
     ],
 )
 def test_integration_database_url_guard_rejects_unsafe_targets(
@@ -78,10 +81,15 @@ def test_integration_database_url_guard_rejects_unsafe_targets(
 def _require_test_database_url(database_url: str) -> None:
     url = make_url(database_url)
     database_name = (url.database or "").lower()
-    if url.drivername != "postgresql+asyncpg" or not database_name.endswith("_test"):
+    if (
+        url.drivername != "postgresql+asyncpg"
+        or not url.username
+        or not database_name.endswith("_test")
+    ):
         raise ValueError(
             "TEST_DATABASE_URL must target a PostgreSQL asyncpg database with a "
-            "name ending in '_test' because this test drops and recreates schema."
+            "username and a database name ending in '_test' because this test "
+            "drops and recreates schema."
         )
 
 
