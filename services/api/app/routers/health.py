@@ -1,12 +1,7 @@
 """Health endpoints for service readiness checks."""
 
-from collections.abc import Mapping
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
-
-from services.api.app.dependencies import get_domain_context
 
 router = APIRouter(tags=["health"])
 
@@ -23,7 +18,6 @@ class HealthResponse(BaseModel):
 @router.get("/health", response_model=HealthResponse)
 async def health_check(
     request: Request,
-    domain_context: Annotated[Mapping[str, str], Depends(get_domain_context)],
 ) -> HealthResponse:
     """Return basic process health and environment metadata."""
 
@@ -32,5 +26,5 @@ async def health_check(
         status="ok",
         service=settings.service_name,
         environment=settings.app_env,
-        domain=domain_context["status"],
+        domain="ready",
     )
