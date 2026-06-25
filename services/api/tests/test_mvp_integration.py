@@ -16,7 +16,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from services.api.app.config import Settings, get_settings
 from services.api.app.db.database import get_session
-from services.api.app.db.models import Attempt, LearningSession, Progress, ReviewState
+from services.api.app.db.models import (
+    Attempt,
+    LearningSession,
+    Lesson,
+    Progress,
+    ReviewState,
+)
 from services.api.app.lang_packs import import_language_pack, load_language_pack
 from services.api.app.main import create_app
 
@@ -25,6 +31,16 @@ LANG_PACK_PATH = REPOSITORY_ROOT / "packages/lang-packs/examples/es-a1-greetings
 
 
 pytestmark = pytest.mark.integration
+
+
+def test_pack_version_columns_allow_content_version_identifiers() -> None:
+    for model, column_name in (
+        (Lesson, "pack_version"),
+        (LearningSession, "language_pack_version"),
+        (Attempt, "language_pack_version"),
+        (ReviewState, "language_pack_version"),
+    ):
+        assert model.__table__.c[column_name].type.length == 128
 
 
 def test_mvp_learning_workflow_persists_across_application_restart(monkeypatch) -> None:

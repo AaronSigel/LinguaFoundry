@@ -31,7 +31,7 @@ def upgrade() -> None:
         "lessons",
         sa.Column(
             "pack_version",
-            sa.String(length=32),
+            sa.String(length=128),
             server_default=sa.text("'1.0'"),
             nullable=False,
         ),
@@ -49,7 +49,7 @@ def upgrade() -> None:
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("lesson_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("language_pack_id", sa.String(length=128), nullable=False),
-        sa.Column("language_pack_version", sa.String(length=32), nullable=False),
+        sa.Column("language_pack_version", sa.String(length=128), nullable=False),
         sa.Column(
             "status",
             sa.String(length=32),
@@ -125,7 +125,7 @@ def upgrade() -> None:
         "attempts",
         sa.Column(
             "language_pack_version",
-            sa.String(length=32),
+            sa.String(length=128),
             server_default=sa.text("'1.0'"),
             nullable=False,
         ),
@@ -157,7 +157,7 @@ def upgrade() -> None:
             nullable=True,
         ),
         sa.Column("language_pack_id", sa.String(length=128), nullable=False),
-        sa.Column("language_pack_version", sa.String(length=32), nullable=False),
+        sa.Column("language_pack_version", sa.String(length=128), nullable=False),
         sa.Column(
             "status",
             sa.String(length=32),
