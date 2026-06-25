@@ -36,5 +36,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # 0002 now defines these columns at 128 characters. Keep downgrade non-lossy.
-    pass
+    for table_name, column_name in PACK_VERSION_COLUMNS:
+        op.alter_column(
+            table_name,
+            column_name,
+            existing_type=sa.String(length=128),
+            type_=sa.String(length=32),
+            existing_nullable=False,
+        )
