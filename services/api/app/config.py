@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     app_env: str = "development"
     log_level: str = "INFO"
     service_name: str = "linguafoundry-api"
+    database_url: str = "postgresql+asyncpg://localhost:5432/linguafoundry"
+    database_echo: bool = False
+    api_key: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

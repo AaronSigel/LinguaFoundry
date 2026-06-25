@@ -51,8 +51,14 @@ The bot reads configuration from environment variables or a local `.env` file:
 
 - `TELEGRAM_BOT_TOKEN`: Telegram Bot API token.
 - `API_BASE_URL`: backend API URL, defaults to `http://localhost:8000`.
+- `API_KEY`: optional shared API key sent to protected backend API routes.
+- `LOG_LEVEL`: structured log verbosity, defaults to `INFO`.
 - `TELEGRAM_POLL_TIMEOUT`: Telegram long-polling timeout in seconds, defaults
   to `30`.
+- `API_READY_TIMEOUT_SECONDS`: how long the bot waits for API readiness before
+  exiting, defaults to `60`.
+- `API_READY_INTERVAL_SECONDS`: delay between readiness attempts, defaults to
+  `2`.
 
 ## Run Locally
 

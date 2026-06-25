@@ -20,10 +20,11 @@ repository.
 
 ## Verification
 
-The repository currently has no runnable code, dependency file, or test command.
-When implementation code is added, include the smallest useful verification
-command in the relevant README and prefer standard Python tooling such as
-`pytest`, `ruff`, and type checking when configured.
+The repository has runnable Python services, dependency files, and tests.
+Prefer the pinned `requirements.lock` for reproducible local or CI installs
+when a full development environment is needed. Use the smallest useful
+verification command for the change, such as `pytest`, `ruff`, or a focused
+service test path.
 
 ## Change Hygiene
 

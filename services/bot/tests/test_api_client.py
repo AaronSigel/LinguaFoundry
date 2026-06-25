@@ -98,6 +98,19 @@ def test_api_client_uses_learning_workflow_endpoints(
     assert recorder.timeouts == [10, 10, 10, 10, 10, 10, 10]
 
 
+def test_api_client_sends_configured_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    recorder = RecordingUrlopen([{"status": "ok"}])
+    monkeypatch.setattr(api_client, "urlopen", recorder)
+    header_value = "local-" + "api-key"
+    client = ApiClient("https://api.example.test/", api_key=header_value)
+
+    assert client.health() == {"status": "ok"}
+
+    assert recorder.requests[0].get_header("X-api-key") == header_value
+
+
 def test_api_client_rejects_non_object_response_for_object_endpoint(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

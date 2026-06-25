@@ -16,43 +16,47 @@ services:
       retries: 10
 
   api:
-    image: python:3.12-slim
-    working_dir: /app
-    volumes:
-      - .:/app
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
     environment:
       APP_ENV: ${APP_ENV:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-linguafoundry}:${POSTGRES_PASSWORD:-linguafoundry}@db:5432/${POSTGRES_DB:-linguafoundry}
       DATABASE_ECHO: ${DATABASE_ECHO:-false}
+      API_KEY: ${API_KEY:-}
       SEED_LANG_PACKS: ${SEED_LANG_PACKS:-true}
       SEED_LANG_PACK_PATHS: ${SEED_LANG_PACK_PATHS:-packages/lang-packs/examples}
-    command: >
-      sh -c "python -m pip install --no-cache-dir -e .
-      && alembic -c services/api/alembic.ini upgrade head
-      && if [ \"$${SEED_LANG_PACKS}\" = \"true\" ]; then linguafoundry-lang-packs $${SEED_LANG_PACK_PATHS}; fi
-      && python -m uvicorn services.api.app.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"from urllib.request import urlopen; urlopen('http://localhost:8000/health', timeout=5).read()\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   bot:
-    image: python:3.12-slim
-    working_dir: /app
-    volumes:
-      - .:/app
+    build:
+      context: .
+      dockerfile: services/bot/Dockerfile
     environment:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       API_BASE_URL: http://api:8000
+      API_KEY: ${API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       TELEGRAM_POLL_TIMEOUT: ${TELEGRAM_POLL_TIMEOUT:-30}
-    command: >
-      sh -c "python -m pip install --no-cache-dir -e .
-      && python -m services.bot.app.main"
+      API_READY_TIMEOUT_SECONDS: ${API_READY_TIMEOUT_SECONDS:-60}
+      API_READY_INTERVAL_SECONDS: ${API_READY_INTERVAL_SECONDS:-2}
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   postgres-data:

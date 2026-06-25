@@ -17,17 +17,18 @@ Telegram-first MVP surface and API contract:
 - At least one published lesson exists in the API database with one or more
   exercises and answer keys.
 - For the Telegram path, `TELEGRAM_BOT_TOKEN` is set.
+- If `API_KEY` is set, protected API smoke requests include `X-API-Key`.
 
 Start the local stack from the repository root:
 
 ```shell
-docker compose up db api
+docker compose up --build db api
 ```
 
 When testing the Telegram flow as well, run the full stack:
 
 ```shell
-docker compose up
+docker compose up --build
 ```
 
 ## API Smoke Path
@@ -42,10 +43,17 @@ Use the API path when validating the backend contract without Telegram:
 
    Expected result: HTTP `200` with `"status": "ok"`.
 
+   If `API_KEY` is set, define a reusable curl header for the protected
+   requests below:
+
+   ```shell
+   API_AUTH_HEADER=(-H "X-API-Key: $API_KEY")
+   ```
+
 1. Register or update a learner.
 
    ```shell
-   curl -s -X POST http://localhost:8000/learning/users \
+   curl -s -X POST http://localhost:8000/learning/users "${API_AUTH_HEADER[@]}" \
      -H 'Content-Type: application/json' \
      -d '{"telegram_id":1001,"username":"mvp_smoke","first_name":"MVP","interface_language":"en"}'
    ```
@@ -56,7 +64,7 @@ Use the API path when validating the backend contract without Telegram:
 1. List published lessons.
 
    ```shell
-   curl -s http://localhost:8000/learning/lessons
+   curl -s "${API_AUTH_HEADER[@]}" http://localhost:8000/learning/lessons
    ```
 
    Expected result: HTTP `200` with at least one lesson where
@@ -65,7 +73,7 @@ Use the API path when validating the backend contract without Telegram:
 1. Start the lesson.
 
    ```shell
-   curl -s -X POST http://localhost:8000/learning/sessions \
+   curl -s -X POST http://localhost:8000/learning/sessions "${API_AUTH_HEADER[@]}" \
      -H 'Content-Type: application/json' \
      -d '{"user_id":"'"$USER_ID"'","lesson_id":"'"$LESSON_ID"'"}'
    ```
@@ -76,7 +84,7 @@ Use the API path when validating the backend contract without Telegram:
 1. Fetch the current exercise.
 
    ```shell
-   curl -s http://localhost:8000/learning/sessions/"$SESSION_ID"/exercise
+   curl -s "${API_AUTH_HEADER[@]}" http://localhost:8000/learning/sessions/"$SESSION_ID"/exercise
    ```
 
    Expected result: HTTP `200` with an `exercise` object containing the prompt
@@ -85,7 +93,7 @@ Use the API path when validating the backend contract without Telegram:
 1. Submit an intentionally incorrect answer.
 
    ```shell
-   curl -s -X POST http://localhost:8000/learning/sessions/"$SESSION_ID"/answers \
+   curl -s -X POST http://localhost:8000/learning/sessions/"$SESSION_ID"/answers "${API_AUTH_HEADER[@]}" \
      -H 'Content-Type: application/json' \
      -d '{"answer":"__incorrect_smoke_answer__"}'
    ```
@@ -102,7 +110,7 @@ Use the API path when validating the backend contract without Telegram:
 1. View detailed progress.
 
    ```shell
-   curl -s http://localhost:8000/learning/users/"$USER_ID"/progress
+   curl -s "${API_AUTH_HEADER[@]}" http://localhost:8000/learning/users/"$USER_ID"/progress
    ```
 
    Expected result: HTTP `200` with the completed lesson progress entry.
@@ -110,7 +118,7 @@ Use the API path when validating the backend contract without Telegram:
 1. View aggregate progress.
 
    ```shell
-   curl -s http://localhost:8000/learning/users/"$USER_ID"/progress/stats
+   curl -s "${API_AUTH_HEADER[@]}" http://localhost:8000/learning/users/"$USER_ID"/progress/stats
    ```
 
    Expected result: HTTP `200` with `answer_count` greater than `0`,
@@ -120,7 +128,7 @@ Use the API path when validating the backend contract without Telegram:
 1. View missed-exercise review.
 
    ```shell
-   curl -s http://localhost:8000/learning/users/"$USER_ID"/review
+   curl -s "${API_AUTH_HEADER[@]}" http://localhost:8000/learning/users/"$USER_ID"/review
    ```
 
    Expected result: HTTP `200` with a `cards` list containing the intentionally

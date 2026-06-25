@@ -7,7 +7,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from services.api.app.core.config import get_settings
+from services.api.app.config import get_settings
 from services.api.app.db.base import Base
 from services.api.app.db import models  # noqa: F401
 

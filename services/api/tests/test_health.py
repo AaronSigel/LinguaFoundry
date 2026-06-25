@@ -46,3 +46,44 @@ def test_openapi_schema_includes_health_endpoint() -> None:
     schema = app.openapi()
 
     assert "/health" in schema["paths"]
+
+
+def test_api_key_protects_non_public_routes() -> None:
+    header_value = "local-" + "api-key"
+    app = create_app(Settings(app_env="test", api_key=header_value))
+
+    async def request_private_path(
+        headers: dict[str, str] | None = None,
+    ) -> httpx.Response:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.get("/private-path", headers=headers)
+
+    unauthorized_response = asyncio.run(request_private_path())
+    authorized_response = asyncio.run(request_private_path({"X-API-Key": header_value}))
+
+    assert unauthorized_response.status_code == 401
+    assert authorized_response.status_code == 404
+
+
+def test_api_key_allows_public_health_and_schema_routes() -> None:
+    app = create_app(Settings(app_env="test", api_key="local-" + "api-key"))
+
+    async def request_public_paths() -> list[httpx.Response]:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return [
+                await client.get("/health"),
+                await client.get("/openapi.json"),
+            ]
+
+    health_response, schema_response = asyncio.run(request_public_paths())
+
+    assert health_response.status_code == 200
+    assert schema_response.status_code == 200
