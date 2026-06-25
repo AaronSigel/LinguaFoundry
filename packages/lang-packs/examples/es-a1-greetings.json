@@ -1,6 +1,7 @@
 {
   "schema_version": "1.0",
   "pack_id": "es-a1-greetings",
+  "content_version": "2026.06.0",
   "title": "Spanish A1 Greetings",
   "description": "Minimal example language pack for beginner Spanish greetings.",
   "language": {

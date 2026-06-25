@@ -1,6 +1,7 @@
 {
   "schema_version": "1.0",
   "pack_id": "fr-a1-seed",
+  "content_version": "2026.06.0",
   "title": "French A1 Seed Pack",
   "description": "Minimal French A1 pack with several beginner lessons for manual testing of the learning flow.",
   "language": {

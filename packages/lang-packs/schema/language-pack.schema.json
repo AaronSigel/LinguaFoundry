@@ -5,7 +5,13 @@
   "description": "Format for language learning content packs containing levels, topics, lessons, exercises, answers, and explanations.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "pack_id", "language", "levels"],
+  "required": [
+    "schema_version",
+    "pack_id",
+    "content_version",
+    "language",
+    "levels"
+  ],
   "properties": {
     "schema_version": {
       "type": "string",
@@ -13,6 +19,11 @@
     },
     "pack_id": {
       "$ref": "#/$defs/slug"
+    },
+    "content_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
     },
     "title": {
       "type": "string",

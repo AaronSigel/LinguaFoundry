@@ -64,7 +64,8 @@ def test_build_lesson_records_defines_stable_identifiers() -> None:
     assert len(lessons) == 1
     assert lessons[0].stable_id == "es-a1-greetings-a1-greetings-hello-and-goodbye"
     assert lessons[0].pack_id == "es-a1-greetings"
-    assert lessons[0].pack_version == "1.0"
+    assert lessons[0].content_version == "2026.06.0"
+    assert lessons[0].pack_version == "2026.06.0"
     assert lessons[0].stable_id == stable_lesson_id_for(
         pack_id="es-a1-greetings",
         level_id="A1",
@@ -82,6 +83,30 @@ def test_build_lesson_records_defines_stable_identifiers() -> None:
         == "es-a1-greetings-a1-greetings-hello-and-goodbye-choose-hello"
     )
     assert lessons[0].exercises[0].answer["accepted_answers"] == ["hola"]
+    assert lessons[0].exercises[0].payload["content_version"] == "2026.06.0"
+
+
+def test_validate_language_pack_requires_content_version() -> None:
+    pack = load_language_pack(DEFAULT_LANG_PACKS_PATH / "es-a1-greetings.json")
+    pack.pop("content_version")
+
+    with pytest.raises(LanguagePackError, match="'content_version' is a required"):
+        validate_language_pack(pack)
+
+
+def test_lesson_content_version_alias_writes_pack_version() -> None:
+    lesson = Lesson(
+        language_code="es",
+        pack_id="es-a1-greetings",
+        pack_version="2026.06.0",
+        slug="es-a1-greetings-a1-greetings-hello-and-goodbye",
+        title="Hello and goodbye",
+    )
+
+    lesson.content_version = "2026.07.0"
+
+    assert lesson.content_version == "2026.07.0"
+    assert lesson.pack_version == "2026.07.0"
 
 
 def test_validate_language_pack_rejects_duplicate_stable_exercise_ids() -> None:
@@ -137,5 +162,36 @@ def test_import_language_pack_creates_then_updates_existing_records() -> None:
     assert update_session.commits == 1
     assert lesson.title == "Updated greeting"
     assert lesson.pack_id == "es-a1-greetings"
-    assert lesson.pack_version == "1.0"
+    assert lesson.content_version == "2026.06.0"
+    assert lesson.pack_version == "2026.06.0"
     assert first_exercise.prompt == "Updated prompt?"
+
+
+def test_import_language_pack_creates_distinct_records_per_content_version() -> None:
+    pack = load_language_pack(DEFAULT_LANG_PACKS_PATH / "es-a1-greetings.json")
+    first_session = _QueuedAsyncSession([None, None, None])
+
+    first_stats = asyncio.run(import_language_pack(first_session, pack))
+
+    assert first_stats.lessons_created == 1
+    original_lesson = first_session.added[0]
+    assert isinstance(original_lesson, Lesson)
+
+    new_version_pack = copy.deepcopy(pack)
+    new_version_pack["content_version"] = "2026.07.0"
+    new_version_session = _QueuedAsyncSession([None, None, None])
+
+    new_version_stats = asyncio.run(
+        import_language_pack(new_version_session, new_version_pack)
+    )
+
+    assert new_version_stats.lessons_created == 1
+    assert new_version_stats.lessons_updated == 0
+    versioned_lesson, first_exercise, second_exercise = new_version_session.added
+    assert versioned_lesson is not original_lesson
+    assert versioned_lesson.slug == original_lesson.slug
+    assert versioned_lesson.content_version == "2026.07.0"
+    assert versioned_lesson.pack_version == "2026.07.0"
+    assert first_exercise.payload["content_version"] == "2026.07.0"
+    assert second_exercise.payload["content_version"] == "2026.07.0"
+    assert original_lesson.content_version == "2026.06.0"
