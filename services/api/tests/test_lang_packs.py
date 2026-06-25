@@ -38,6 +38,8 @@ class _QueuedAsyncSession:
     async def flush(self) -> None:
         self.flushes += 1
         for instance in self.added:
+            if isinstance(instance, Lesson) and not instance.title:
+                raise AssertionError("Lesson title must be assigned before flush")
             if isinstance(instance, Lesson) and instance.id is None:
                 instance.id = uuid.uuid4()
 
