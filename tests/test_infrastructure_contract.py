@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+PYTHON_SOURCE_ROOTS = ("services", "packages", "tests")
 
 
 def test_service_images_install_package_at_build_time_only() -> None:
@@ -28,9 +29,11 @@ def test_compose_wires_healthchecks_and_bot_readiness_environment() -> None:
 
 def test_api_settings_are_imported_from_single_module() -> None:
     api_config_path = REPOSITORY_ROOT / "services/api/app/config.py"
+    legacy_core_path = REPOSITORY_ROOT / "services/api/app/core"
     legacy_config_path = REPOSITORY_ROOT / "services/api/app/core/config.py"
 
     assert api_config_path.exists()
+    assert not legacy_core_path.exists()
     assert not legacy_config_path.exists()
     assert (
         "from services.api.app.config import get_settings"
@@ -40,6 +43,23 @@ def test_api_settings_are_imported_from_single_module() -> None:
         "from services.api.app.config import get_settings"
         in (REPOSITORY_ROOT / "services/api/alembic/env.py").read_text()
     )
+
+
+def test_legacy_api_core_package_is_not_referenced() -> None:
+    legacy_references = []
+    legacy_import = ".".join(("services", "api", "app", "core"))
+    legacy_path = "/".join(("services", "api", "app", "core"))
+
+    for source_root in PYTHON_SOURCE_ROOTS:
+        for path in (REPOSITORY_ROOT / source_root).rglob("*.py"):
+            if path == Path(__file__).resolve():
+                continue
+
+            text = path.read_text()
+            if legacy_import in text or legacy_path in text:
+                legacy_references.append(path.relative_to(REPOSITORY_ROOT).as_posix())
+
+    assert legacy_references == []
 
 
 def test_ci_markdown_formatting_ignores_tool_cache_readmes(tmp_path: Path) -> None:
