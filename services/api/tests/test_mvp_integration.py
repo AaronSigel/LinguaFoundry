@@ -10,7 +10,7 @@ import httpx
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -118,6 +118,9 @@ async def _run_mvp_learning_workflow(database_url: str) -> None:
     )
 
     try:
+        async with session_factory() as session:
+            await _assert_pack_version_database_columns_are_wide(session)
+
         async with session_factory() as session:
             stats = await import_language_pack(
                 session, load_language_pack(LANG_PACK_PATH)
@@ -309,3 +312,34 @@ def _override_database_session(app, session_factory) -> None:
 def _client_for(app) -> httpx.AsyncClient:
     transport = httpx.ASGITransport(app=app)
     return httpx.AsyncClient(transport=transport, base_url="http://testserver")
+
+
+async def _assert_pack_version_database_columns_are_wide(
+    session: AsyncSession,
+) -> None:
+    result = await session.execute(
+        text(
+            """
+            SELECT table_name, column_name, character_maximum_length
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND (table_name, column_name) IN (
+                ('lessons', 'pack_version'),
+                ('learning_sessions', 'language_pack_version'),
+                ('attempts', 'language_pack_version'),
+                ('review_states', 'language_pack_version')
+              )
+            """
+        )
+    )
+    column_lengths = {
+        (row.table_name, row.column_name): row.character_maximum_length
+        for row in result
+    }
+
+    assert column_lengths == {
+        ("lessons", "pack_version"): 128,
+        ("learning_sessions", "language_pack_version"): 128,
+        ("attempts", "language_pack_version"): 128,
+        ("review_states", "language_pack_version"): 128,
+    }
