@@ -78,6 +78,8 @@ Learning workflow endpoints are available under `/learning`:
 - `GET /learning/users/{user_id}/progress`: fetch learner progress.
 - `GET /learning/users/{user_id}/progress/stats`: fetch aggregate learner
   statistics.
+- `GET /learning/users/{user_id}/review`: fetch active missed exercises for
+  mistake review.
 
 Learning sessions are durable rows with the active exercise cursor and language
 pack version used for the session. Progress rows remain aggregate per-lesson
