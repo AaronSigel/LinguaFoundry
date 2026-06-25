@@ -34,6 +34,13 @@ learner route sequence:
 pytest services/api/tests/test_mvp_smoke_contract.py
 ```
 
+The language-pack tests validate committed example packs against the JSON Schema
+and verify stable import identifiers:
+
+```shell
+pytest services/api/tests/test_lang_packs.py
+```
+
 ## Quality Checks
 
 Run the same local quality tools used by CI:

@@ -73,10 +73,25 @@ Available example packs:
 
 ## Verification
 
-The repository does not currently include a JSON Schema validator dependency.
-Use the standard library to confirm example files are valid JSON:
+Validate all example packs against the JSON Schema contract with:
 
 ```shell
-python -m json.tool packages/lang-packs/examples/es-a1-greetings.json >/dev/null
-python -m json.tool packages/lang-packs/examples/fr-a1-seed.json >/dev/null
+python -m services.api.app.lang_packs --check packages/lang-packs/examples
 ```
+
+`pytest services/api/tests/test_lang_packs.py` also validates the committed
+example packs in CI.
+
+## Importing
+
+Import packs into PostgreSQL after API migrations have run:
+
+```shell
+python -m services.api.app.lang_packs packages/lang-packs/examples
+```
+
+The importer is idempotent. It updates lessons by target language plus stable
+lesson slug, and updates exercises by stable lesson plus exercise slug. Stable
+lesson slugs are built from `pack_id`, level ID, topic ID, and lesson ID.
+Exercise payloads include a globally stable exercise ID derived from the stable
+lesson slug plus exercise ID.

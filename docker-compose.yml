@@ -25,9 +25,11 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-linguafoundry}:${POSTGRES_PASSWORD:-linguafoundry}@db:5432/${POSTGRES_DB:-linguafoundry}
       DATABASE_ECHO: ${DATABASE_ECHO:-false}
+      SEED_LANG_PACKS: ${SEED_LANG_PACKS:-true}
     command: >
       sh -c "python -m pip install --no-cache-dir -e .
       && alembic -c services/api/alembic.ini upgrade head
+      && if [ \"$${SEED_LANG_PACKS}\" = \"true\" ]; then python -m services.api.app.lang_packs packages/lang-packs/examples; fi
       && python -m uvicorn services.api.app.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "${API_PORT:-8000}:8000"
