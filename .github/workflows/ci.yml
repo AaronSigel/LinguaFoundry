@@ -66,6 +66,8 @@ jobs:
         run: |
           set -euo pipefail
           find . -path ./.git -prune -o \
+            -path './.pytest_cache/*' -prune -o \
+            -path './.ruff_cache/*' -prune -o \
             -path './.github/ISSUE_TEMPLATE/*' -prune -o \
             -name '*.md' -print0 \
             | xargs -0 mdformat --check

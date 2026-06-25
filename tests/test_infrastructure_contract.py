@@ -1,3 +1,5 @@
+import shlex
+import subprocess
 from pathlib import Path
 
 
@@ -38,3 +40,34 @@ def test_api_settings_are_imported_from_single_module() -> None:
         "from services.api.app.config import get_settings"
         in (REPOSITORY_ROOT / "services/api/alembic/env.py").read_text()
     )
+
+
+def test_ci_markdown_formatting_ignores_tool_cache_readmes(tmp_path: Path) -> None:
+    workflow = (REPOSITORY_ROOT / ".github/workflows/ci.yml").read_text()
+    find_start = workflow.index("find . -path ./.git -prune -o \\")
+    find_end = workflow.index("| xargs -0 mdformat --check", find_start)
+    find_command = workflow[find_start:find_end].replace("\\\n", " ").strip()
+
+    markdown_paths = [
+        "README.md",
+        "docs/development.md",
+        ".pytest_cache/README.md",
+        ".ruff_cache/README.md",
+        ".github/ISSUE_TEMPLATE/feature.md",
+    ]
+
+    for relative_path in markdown_paths:
+        path = tmp_path / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# Test\n")
+
+    result = subprocess.run(
+        shlex.split(find_command),
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    discovered_paths = set(result.stdout.decode().split("\0"))
+    discovered_paths.discard("")
+
+    assert discovered_paths == {"./README.md", "./docs/development.md"}
