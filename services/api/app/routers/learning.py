@@ -547,16 +547,18 @@ async def get_review_queue(
     session: Annotated[AsyncSession, Depends(get_session)],
     limit: Annotated[int, Query(ge=1, le=50)] = 5,
 ) -> ReviewQueueResponse:
-    """Return active missed exercises for mistake review."""
+    """Return due active missed exercises for mistake review."""
 
     await _get_user(session, user_id)
 
+    now = datetime.now(UTC)
     statement = (
         select(ReviewState, Exercise)
         .join(Exercise, Exercise.id == ReviewState.exercise_id)
         .where(
             ReviewState.user_id == user_id,
             ReviewState.status == "active",
+            ReviewState.due_at <= now,
         )
         .order_by(ReviewState.due_at, ReviewState.updated_at, ReviewState.id)
         .limit(limit)

@@ -276,7 +276,7 @@ def test_submit_answer_persists_attempt_and_review_state_with_pack_version() -> 
     assert db_session.commits == 1
 
 
-def test_review_queue_returns_active_mistakes_before_due_date() -> None:
+def test_review_queue_returns_due_active_mistakes_only() -> None:
     user_id = uuid.uuid4()
     lesson_id = uuid.uuid4()
     exercise_id = uuid.uuid4()
@@ -302,7 +302,7 @@ def test_review_queue_returns_active_mistakes_before_due_date() -> None:
         language_pack_version="1.0",
         status="active",
         incorrect_count=1,
-        due_at=now + timedelta(days=1),
+        due_at=now - timedelta(minutes=1),
         updated_at=now,
     )
     db_session = _QueuedAsyncSession(
@@ -320,7 +320,7 @@ def test_review_queue_returns_active_mistakes_before_due_date() -> None:
     assert response.cards[0].last_attempted_at == now
     review_query = str(db_session.execute_statements[-1])
     assert "review_states.status" in review_query
-    assert "review_states.due_at <=" not in review_query
+    assert "review_states.due_at <=" in review_query
 
 
 def test_progress_stats_counts_active_mistakes_before_due_date() -> None:
