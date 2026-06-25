@@ -54,7 +54,15 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    learning_sessions: Mapped[list["LearningSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     progress_entries: Mapped[list["Progress"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    review_states: Mapped[list["ReviewState"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )
@@ -65,7 +73,12 @@ class Lesson(Base):
 
     __tablename__ = "lessons"
     __table_args__ = (
-        UniqueConstraint("language_code", "slug", name="uq_lessons_language_slug"),
+        UniqueConstraint(
+            "pack_id",
+            "pack_version",
+            "slug",
+            name="uq_lessons_pack_version_slug",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -74,6 +87,8 @@ class Lesson(Base):
         default=uuid.uuid4,
     )
     language_code: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    pack_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    pack_version: Mapped[str] = mapped_column(String(32), nullable=False)
     slug: Mapped[str] = mapped_column(String(128), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
@@ -106,7 +121,15 @@ class Lesson(Base):
         back_populates="lesson",
         cascade="all, delete-orphan",
     )
+    learning_sessions: Mapped[list["LearningSession"]] = relationship(
+        back_populates="lesson",
+        cascade="all, delete-orphan",
+    )
     progress_entries: Mapped[list["Progress"]] = relationship(
+        back_populates="lesson",
+        cascade="all, delete-orphan",
+    )
+    review_states: Mapped[list["ReviewState"]] = relationship(
         back_populates="lesson",
         cascade="all, delete-orphan",
     )
@@ -163,6 +186,75 @@ class Exercise(Base):
         back_populates="exercise",
         cascade="all, delete-orphan",
     )
+    review_states: Mapped[list["ReviewState"]] = relationship(
+        back_populates="exercise",
+        cascade="all, delete-orphan",
+    )
+
+
+class LearningSession(Base):
+    """Durable active lesson session state for a learner."""
+
+    __tablename__ = "learning_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    lesson_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("lessons.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    language_pack_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    language_pack_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="in_progress",
+        server_default=text("'in_progress'"),
+    )
+    current_exercise_index: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default=text("0"),
+    )
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    user: Mapped[User] = relationship(back_populates="learning_sessions")
+    lesson: Mapped[Lesson] = relationship(back_populates="learning_sessions")
+    attempts: Mapped[list["Attempt"]] = relationship(back_populates="learning_session")
+    review_states: Mapped[list["ReviewState"]] = relationship(
+        back_populates="learning_session"
+    )
 
 
 class Attempt(Base):
@@ -185,6 +277,12 @@ class Attempt(Base):
         nullable=False,
         index=True,
     )
+    learning_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("learning_sessions.id", ondelete="SET NULL"),
+        index=True,
+    )
+    language_pack_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    language_pack_version: Mapped[str] = mapped_column(String(32), nullable=False)
     answer: Mapped[dict[str, object]] = mapped_column(
         JSONB,
         nullable=False,
@@ -201,6 +299,9 @@ class Attempt(Base):
 
     user: Mapped[User] = relationship(back_populates="attempts")
     exercise: Mapped[Exercise] = relationship(back_populates="attempts")
+    learning_session: Mapped[LearningSession | None] = relationship(
+        back_populates="attempts"
+    )
 
 
 class Progress(Base):
@@ -259,3 +360,80 @@ class Progress(Base):
 
     user: Mapped[User] = relationship(back_populates="progress_entries")
     lesson: Mapped[Lesson] = relationship(back_populates="progress_entries")
+
+
+class ReviewState(Base):
+    """Durable spaced-review state for a learner and exercise."""
+
+    __tablename__ = "review_states"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "exercise_id",
+            "language_pack_id",
+            "language_pack_version",
+            name="uq_review_states_user_exercise_pack_version",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    lesson_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("lessons.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    exercise_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("exercises.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    learning_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("learning_sessions.id", ondelete="SET NULL"),
+        index=True,
+    )
+    language_pack_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    language_pack_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="active",
+        server_default=text("'active'"),
+    )
+    incorrect_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        server_default=text("1"),
+    )
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_attempt_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("attempts.id", ondelete="SET NULL"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    user: Mapped[User] = relationship(back_populates="review_states")
+    lesson: Mapped[Lesson] = relationship(back_populates="review_states")
+    exercise: Mapped[Exercise] = relationship(back_populates="review_states")
+    learning_session: Mapped[LearningSession | None] = relationship(
+        back_populates="review_states"
+    )
+    last_attempt: Mapped[Attempt | None] = relationship(foreign_keys=[last_attempt_id])

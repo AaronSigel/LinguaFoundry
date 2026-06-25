@@ -2,25 +2,28 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, TypeVar
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from linguafoundry_core import (
-    Attempt as CoreAttempt,
-    AttemptResult,
-    Exercise as CoreExercise,
-    ExerciseType,
-    build_mistake_review_queue,
-)
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.api.app.db.database import get_session
-from services.api.app.db.models import Attempt, Exercise, Lesson, Progress, User
+from services.api.app.db.models import (
+    Attempt,
+    Exercise,
+    LearningSession,
+    Lesson,
+    Progress,
+    ReviewState,
+    User,
+)
+
+REVIEW_INTERVAL_DAYS = (1, 3, 7, 14)
 
 router = APIRouter(prefix="/learning", tags=["learning"])
 ModelT = TypeVar("ModelT")
@@ -70,7 +73,7 @@ class StartSessionRequest(BaseModel):
 
 
 class SessionResponse(BaseModel):
-    """Learning session state backed by a progress row."""
+    """Learning session state backed by a durable session row."""
 
     session_id: UUID
     user_id: UUID
@@ -78,6 +81,8 @@ class SessionResponse(BaseModel):
     status: str
     completed_exercises: int
     total_exercises: int
+    language_pack_id: str
+    language_pack_version: str
 
 
 class ExerciseResponse(BaseModel):
@@ -252,18 +257,46 @@ async def start_session(
         ),
     )
     if progress is None:
-        progress = Progress(user_id=user.id, lesson_id=lesson.id)
+        progress = Progress(
+            user_id=user.id,
+            lesson_id=lesson.id,
+            total_exercises=total_exercises,
+        )
         session.add(progress)
 
+    learning_session = await _scalar_or_none(
+        session,
+        select(LearningSession)
+        .where(
+            LearningSession.user_id == user.id,
+            LearningSession.lesson_id == lesson.id,
+            LearningSession.language_pack_id == lesson.pack_id,
+            LearningSession.language_pack_version == lesson.pack_version,
+            LearningSession.status == "in_progress",
+        )
+        .order_by(
+            LearningSession.last_seen_at.desc(), LearningSession.created_at.desc()
+        )
+        .limit(1),
+    )
+    if learning_session is None:
+        learning_session = LearningSession(
+            user_id=user.id,
+            lesson_id=lesson.id,
+            language_pack_id=lesson.pack_id,
+            language_pack_version=lesson.pack_version,
+        )
+        session.add(learning_session)
+
+    now = datetime.now(UTC)
+    learning_session.last_seen_at = now
     progress.status = "in_progress"
-    progress.completed_exercises = 0
     progress.total_exercises = total_exercises
-    progress.last_attempt_at = None
     progress.completed_at = None
 
     await session.commit()
-    await session.refresh(progress)
-    return _session_response(progress)
+    await session.refresh(learning_session)
+    return _session_response(learning_session, total_exercises=total_exercises)
 
 
 @router.get(
@@ -276,11 +309,11 @@ async def get_current_exercise(
 ) -> CurrentExerciseResponse:
     """Return the current exercise for a session."""
 
-    progress = await _get_progress(session, session_id)
-    exercise = await _current_exercise(session, progress)
+    learning_session = await _get_learning_session(session, session_id)
+    exercise = await _current_exercise(session, learning_session)
     return CurrentExerciseResponse(
-        session_id=progress.id,
-        status=progress.status,
+        session_id=learning_session.id,
+        status=learning_session.status,
         exercise=_exercise_response(exercise) if exercise is not None else None,
     )
 
@@ -296,19 +329,28 @@ async def submit_answer(
 ) -> SubmitAnswerResponse:
     """Submit an answer for the current exercise and advance progress."""
 
-    progress = await _get_progress(session, session_id)
-    if progress.status == "completed":
+    learning_session = await _get_learning_session(session, session_id)
+    if learning_session.status == "completed":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Session is already completed.",
         )
 
-    exercise = await _current_exercise(session, progress)
+    total_exercises = await _exercise_count(session, learning_session.lesson_id)
+    exercise = await _current_exercise(session, learning_session)
     if exercise is None:
+        now = datetime.now(UTC)
+        learning_session.status = "completed"
+        learning_session.completed_at = now
+        progress = await _get_or_create_progress(
+            session,
+            learning_session=learning_session,
+            total_exercises=total_exercises,
+        )
         progress.status = "completed"
-        progress.completed_at = datetime.now(UTC)
+        progress.completed_at = now
         await session.commit()
-        await session.refresh(progress)
+        await session.refresh(learning_session)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Session has no remaining exercises.",
@@ -316,29 +358,60 @@ async def submit_answer(
 
     is_correct = _score_answer(payload.answer, exercise.answer)
     attempt = Attempt(
-        user_id=progress.user_id,
+        user_id=learning_session.user_id,
         exercise_id=exercise.id,
+        learning_session_id=learning_session.id,
+        language_pack_id=learning_session.language_pack_id,
+        language_pack_version=learning_session.language_pack_version,
         answer={"answer": payload.answer},
         is_correct=is_correct,
         score=_score_value(is_correct),
     )
     session.add(attempt)
+    await session.flush()
 
-    progress.completed_exercises += 1
-    progress.last_attempt_at = datetime.now(UTC)
-    if progress.completed_exercises >= progress.total_exercises:
+    now = datetime.now(UTC)
+    learning_session.current_exercise_index += 1
+    learning_session.last_seen_at = now
+    progress = await _get_or_create_progress(
+        session,
+        learning_session=learning_session,
+        total_exercises=total_exercises,
+    )
+    progress.completed_exercises = max(
+        progress.completed_exercises,
+        learning_session.current_exercise_index,
+    )
+    progress.last_attempt_at = now
+    if learning_session.current_exercise_index >= total_exercises:
+        learning_session.status = "completed"
+        learning_session.completed_at = now
         progress.status = "completed"
-        progress.completed_at = progress.last_attempt_at
+        progress.completed_at = now
+    else:
+        progress.status = "in_progress"
+
+    await _update_review_state(
+        session,
+        learning_session=learning_session,
+        exercise=exercise,
+        attempt=attempt,
+        is_correct=is_correct,
+        now=now,
+    )
 
     await session.commit()
     await session.refresh(attempt)
-    await session.refresh(progress)
+    await session.refresh(learning_session)
     return SubmitAnswerResponse(
         attempt_id=attempt.id,
         exercise_id=exercise.id,
         is_correct=is_correct,
-        session_completed=progress.status == "completed",
-        progress=_session_response(progress),
+        session_completed=learning_session.status == "completed",
+        progress=_session_response(
+            learning_session,
+            total_exercises=total_exercises,
+        ),
     )
 
 
@@ -406,9 +479,15 @@ async def get_progress_stats(
         )
     )
     active_repetitions = await session.scalar(
-        select(func.count(Progress.id)).where(
-            Progress.user_id == user_id,
-            Progress.status == "in_progress",
+        select(func.count(ReviewState.id)).where(
+            ReviewState.user_id == user_id,
+            ReviewState.status == "active",
+            ReviewState.due_at <= datetime.now(UTC),
+        )
+    )
+    last_session_at = await session.scalar(
+        select(func.max(LearningSession.last_seen_at)).where(
+            LearningSession.user_id == user_id
         )
     )
     last_progress_at = await session.scalar(
@@ -423,8 +502,44 @@ async def get_progress_stats(
         accuracy_percent=accuracy * 100,
         completed_lessons=completed_lessons or 0,
         active_repetitions=active_repetitions or 0,
-        last_activity_at=_latest_datetime(last_attempt_at, last_progress_at),
+        last_activity_at=_latest_datetime(
+            last_attempt_at,
+            last_progress_at,
+            last_session_at,
+        ),
     )
+
+
+@router.get("/users/{user_id}/sessions/active", response_model=list[SessionResponse])
+async def get_active_sessions(
+    user_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> list[SessionResponse]:
+    """Return active durable sessions for a learner."""
+
+    await _get_user(session, user_id)
+    totals = (
+        select(func.count(Exercise.id))
+        .where(Exercise.lesson_id == LearningSession.lesson_id)
+        .correlate(LearningSession)
+        .scalar_subquery()
+    )
+    rows = (
+        await session.execute(
+            select(LearningSession, totals.label("total_exercises"))
+            .where(
+                LearningSession.user_id == user_id,
+                LearningSession.status == "in_progress",
+            )
+            .order_by(
+                LearningSession.last_seen_at.desc(), LearningSession.created_at.desc()
+            )
+        )
+    ).all()
+    return [
+        _session_response(learning_session, total_exercises=total_exercises)
+        for learning_session, total_exercises in rows
+    ]
 
 
 @router.get("/users/{user_id}/review", response_model=ReviewQueueResponse)
@@ -433,7 +548,7 @@ async def get_review_queue(
     session: Annotated[AsyncSession, Depends(get_session)],
     limit: int = 5,
 ) -> ReviewQueueResponse:
-    """Return exercises whose latest non-skipped attempt was incorrect."""
+    """Return durable review states whose exercises are due."""
 
     await _get_user(session, user_id)
     if limit < 1:
@@ -443,32 +558,30 @@ async def get_review_queue(
         )
 
     statement = (
-        select(Attempt, Exercise)
-        .join(Exercise, Exercise.id == Attempt.exercise_id)
-        .where(Attempt.user_id == user_id, Attempt.is_correct.is_not(None))
-        .order_by(Attempt.attempted_at, Attempt.id)
+        select(ReviewState, Exercise)
+        .join(Exercise, Exercise.id == ReviewState.exercise_id)
+        .where(
+            ReviewState.user_id == user_id,
+            ReviewState.status == "active",
+            ReviewState.due_at <= datetime.now(UTC),
+        )
+        .order_by(ReviewState.due_at, ReviewState.updated_at, ReviewState.id)
+        .limit(limit)
     )
     rows = (await session.execute(statement)).all()
-    attempts = [_core_attempt(attempt) for attempt, _exercise in rows]
-    exercises = {
-        _exercise.id: _core_exercise(_exercise) for _attempt, _exercise in rows
-    }
-    cards = [
-        ReviewCardResponse(
-            exercise_id=UUID(card.exercise_id),
-            prompt=card.prompt,
-            expected_answer=card.expected_answer,
-            incorrect_attempts=card.incorrect_attempts,
-            last_attempted_at=card.last_attempted_at,
-        )
-        for card in build_mistake_review_queue(
-            attempts=attempts,
-            exercises=exercises.values(),
-            user_id=str(user_id),
-            limit=limit,
-        )
-    ]
-    return ReviewQueueResponse(user_id=user_id, cards=cards)
+    return ReviewQueueResponse(
+        user_id=user_id,
+        cards=[
+            ReviewCardResponse(
+                exercise_id=exercise.id,
+                prompt=exercise.prompt,
+                expected_answer=_expected_answer_text(exercise.answer),
+                incorrect_attempts=review_state.incorrect_count,
+                last_attempted_at=review_state.updated_at,
+            )
+            for review_state, exercise in rows
+        ],
+    )
 
 
 async def _scalar_or_none(
@@ -501,17 +614,20 @@ async def _get_published_lesson(session: AsyncSession, lesson_id: UUID) -> Lesso
     return lesson
 
 
-async def _get_progress(session: AsyncSession, progress_id: UUID) -> Progress:
-    progress = await _scalar_or_none(
+async def _get_learning_session(
+    session: AsyncSession,
+    learning_session_id: UUID,
+) -> LearningSession:
+    learning_session = await _scalar_or_none(
         session,
-        select(Progress).where(Progress.id == progress_id),
+        select(LearningSession).where(LearningSession.id == learning_session_id),
     )
-    if progress is None:
+    if learning_session is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found.",
         )
-    return progress
+    return learning_session
 
 
 async def _exercise_count(session: AsyncSession, lesson_id: UUID) -> int:
@@ -523,28 +639,117 @@ async def _exercise_count(session: AsyncSession, lesson_id: UUID) -> int:
 
 async def _current_exercise(
     session: AsyncSession,
-    progress: Progress,
+    learning_session: LearningSession,
 ) -> Exercise | None:
-    if progress.status == "completed":
+    if learning_session.status == "completed":
         return None
     statement = (
         select(Exercise)
-        .where(Exercise.lesson_id == progress.lesson_id)
+        .where(Exercise.lesson_id == learning_session.lesson_id)
         .order_by(Exercise.position, Exercise.slug)
-        .offset(progress.completed_exercises)
+        .offset(learning_session.current_exercise_index)
         .limit(1)
     )
     return await _scalar_or_none(session, statement)
 
 
-def _session_response(progress: Progress) -> SessionResponse:
+async def _get_or_create_progress(
+    session: AsyncSession,
+    *,
+    learning_session: LearningSession,
+    total_exercises: int,
+) -> Progress:
+    progress = await _scalar_or_none(
+        session,
+        select(Progress).where(
+            Progress.user_id == learning_session.user_id,
+            Progress.lesson_id == learning_session.lesson_id,
+        ),
+    )
+    if progress is None:
+        progress = Progress(
+            user_id=learning_session.user_id,
+            lesson_id=learning_session.lesson_id,
+            total_exercises=total_exercises,
+        )
+        session.add(progress)
+        await session.flush()
+    progress.total_exercises = total_exercises
+    return progress
+
+
+async def _update_review_state(
+    session: AsyncSession,
+    *,
+    learning_session: LearningSession,
+    exercise: Exercise,
+    attempt: Attempt,
+    is_correct: bool | None,
+    now: datetime,
+) -> None:
+    if is_correct is None:
+        return
+
+    review_state = await _scalar_or_none(
+        session,
+        select(ReviewState).where(
+            ReviewState.user_id == learning_session.user_id,
+            ReviewState.exercise_id == exercise.id,
+            ReviewState.language_pack_id == learning_session.language_pack_id,
+            ReviewState.language_pack_version == learning_session.language_pack_version,
+        ),
+    )
+
+    if is_correct:
+        if review_state is not None:
+            review_state.status = "mastered"
+            review_state.last_attempt_id = attempt.id
+            review_state.learning_session_id = learning_session.id
+        return
+
+    if review_state is None:
+        review_state = ReviewState(
+            user_id=learning_session.user_id,
+            lesson_id=learning_session.lesson_id,
+            exercise_id=exercise.id,
+            learning_session_id=learning_session.id,
+            language_pack_id=learning_session.language_pack_id,
+            language_pack_version=learning_session.language_pack_version,
+            due_at=_review_due_at(now, incorrect_count=1),
+            last_attempt_id=attempt.id,
+        )
+        session.add(review_state)
+        return
+
+    review_state.status = "active"
+    review_state.incorrect_count += 1
+    review_state.due_at = _review_due_at(
+        now,
+        incorrect_count=review_state.incorrect_count,
+    )
+    review_state.last_attempt_id = attempt.id
+    review_state.learning_session_id = learning_session.id
+
+
+def _review_due_at(now: datetime, *, incorrect_count: int) -> datetime:
+    interval_index = min(incorrect_count, len(REVIEW_INTERVAL_DAYS)) - 1
+    return now + timedelta(days=REVIEW_INTERVAL_DAYS[interval_index])
+
+
+def _session_response(
+    learning_session: LearningSession,
+    *,
+    total_exercises: int,
+) -> SessionResponse:
     return SessionResponse(
-        session_id=progress.id,
-        user_id=progress.user_id,
-        lesson_id=progress.lesson_id,
-        status=progress.status,
-        completed_exercises=progress.completed_exercises,
-        total_exercises=progress.total_exercises,
+        session_id=learning_session.id,
+        user_id=learning_session.user_id,
+        lesson_id=learning_session.lesson_id,
+        status=learning_session.status,
+        completed_exercises=learning_session.current_exercise_index,
+        total_exercises=total_exercises,
+        language_pack_id=learning_session.language_pack_id,
+        language_pack_version=learning_session.language_pack_version,
     )
 
 
@@ -557,38 +762,6 @@ def _exercise_response(exercise: Exercise) -> ExerciseResponse:
         payload=exercise.payload,
         position=exercise.position,
     )
-
-
-def _core_attempt(attempt: Attempt) -> CoreAttempt:
-    submitted_answer = attempt.answer.get("answer")
-    return CoreAttempt(
-        id=str(attempt.id),
-        user_id=str(attempt.user_id),
-        exercise_id=str(attempt.exercise_id),
-        submitted_answer=str(submitted_answer) if submitted_answer is not None else "",
-        result=AttemptResult.CORRECT
-        if attempt.is_correct is True
-        else AttemptResult.INCORRECT,
-        attempted_at=attempt.attempted_at,
-    )
-
-
-def _core_exercise(exercise: Exercise) -> CoreExercise:
-    return CoreExercise(
-        id=str(exercise.id),
-        lesson_id=str(exercise.lesson_id),
-        exercise_type=_core_exercise_type(exercise.kind),
-        prompt=exercise.prompt,
-        expected_answer=_expected_answer_text(exercise.answer) or "Answer unavailable",
-        order=exercise.position,
-    )
-
-
-def _core_exercise_type(kind: str) -> ExerciseType:
-    try:
-        return ExerciseType(kind)
-    except ValueError:
-        return ExerciseType.TEXT_INPUT
 
 
 def _score_value(is_correct: bool | None) -> Decimal | None:

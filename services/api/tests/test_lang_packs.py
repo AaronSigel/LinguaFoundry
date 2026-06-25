@@ -61,6 +61,8 @@ def test_build_lesson_records_defines_stable_identifiers() -> None:
 
     assert len(lessons) == 1
     assert lessons[0].stable_id == "es-a1-greetings-a1-greetings-hello-and-goodbye"
+    assert lessons[0].pack_id == "es-a1-greetings"
+    assert lessons[0].pack_version == "1.0"
     assert lessons[0].stable_id == stable_lesson_id_for(
         pack_id="es-a1-greetings",
         level_id="A1",
@@ -132,4 +134,6 @@ def test_import_language_pack_creates_then_updates_existing_records() -> None:
     assert update_session.added == []
     assert update_session.commits == 1
     assert lesson.title == "Updated greeting"
+    assert lesson.pack_id == "es-a1-greetings"
+    assert lesson.pack_version == "1.0"
     assert first_exercise.prompt == "Updated prompt?"

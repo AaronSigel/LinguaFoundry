@@ -54,6 +54,13 @@ class CompletionStatus(str, Enum):
     COMPLETED = "completed"
 
 
+class ReviewStatus(str, Enum):
+    """Durable review lifecycle for exercises that need repetition."""
+
+    ACTIVE = "active"
+    MASTERED = "mastered"
+
+
 @dataclass(frozen=True, slots=True)
 class User:
     """A learner using LinguaFoundry."""
@@ -129,12 +136,21 @@ class Attempt:
     exercise_id: str
     submitted_answer: str
     result: AttemptResult
+    session_id: str | None = None
+    language_pack_id: str | None = None
+    language_pack_version: str | None = None
     attempted_at: datetime = field(default_factory=utc_now)
 
     def __post_init__(self) -> None:
         _require_non_empty(self.id, "id")
         _require_non_empty(self.user_id, "user_id")
         _require_non_empty(self.exercise_id, "exercise_id")
+        if self.session_id is not None:
+            _require_non_empty(self.session_id, "session_id")
+        if self.language_pack_id is not None:
+            _require_non_empty(self.language_pack_id, "language_pack_id")
+        if self.language_pack_version is not None:
+            _require_non_empty(self.language_pack_version, "language_pack_version")
         if self.result is not AttemptResult.SKIPPED:
             _require_non_empty(self.submitted_answer, "submitted_answer")
 
@@ -146,7 +162,10 @@ class LearningSession:
     id: str
     user_id: str
     lesson_id: str
+    language_pack_id: str = "legacy"
+    language_pack_version: str = "1.0"
     status: CompletionStatus = CompletionStatus.NOT_STARTED
+    current_exercise_index: int = 0
     started_at: datetime = field(default_factory=utc_now)
     completed_at: datetime | None = None
 
@@ -154,10 +173,48 @@ class LearningSession:
         _require_non_empty(self.id, "id")
         _require_non_empty(self.user_id, "user_id")
         _require_non_empty(self.lesson_id, "lesson_id")
+        _require_non_empty(self.language_pack_id, "language_pack_id")
+        _require_non_empty(self.language_pack_version, "language_pack_version")
+        if self.current_exercise_index < 0:
+            raise ValueError("current_exercise_index must be non-negative")
         if self.status is CompletionStatus.COMPLETED and self.completed_at is None:
             raise ValueError("completed_at is required when status is completed")
         if self.completed_at is not None and self.completed_at < self.started_at:
             raise ValueError("completed_at must not be earlier than started_at")
+
+
+@dataclass(frozen=True, slots=True)
+class ReviewState:
+    """Durable review scheduling state for a learner and exercise."""
+
+    user_id: str
+    exercise_id: str
+    lesson_id: str
+    language_pack_id: str
+    language_pack_version: str
+    due_at: datetime
+    status: ReviewStatus = ReviewStatus.ACTIVE
+    incorrect_count: int = 1
+    last_attempt_id: str | None = None
+    session_id: str | None = None
+    created_at: datetime = field(default_factory=utc_now)
+
+    def __post_init__(self) -> None:
+        _require_non_empty(self.user_id, "user_id")
+        _require_non_empty(self.exercise_id, "exercise_id")
+        _require_non_empty(self.lesson_id, "lesson_id")
+        _require_non_empty(self.language_pack_id, "language_pack_id")
+        _require_non_empty(self.language_pack_version, "language_pack_version")
+        if self.last_attempt_id is not None:
+            _require_non_empty(self.last_attempt_id, "last_attempt_id")
+        if self.session_id is not None:
+            _require_non_empty(self.session_id, "session_id")
+        if self.incorrect_count < 1:
+            raise ValueError("incorrect_count must be positive")
+        if self.due_at.tzinfo is None:
+            raise ValueError("due_at must be timezone-aware")
+        if self.created_at.tzinfo is None:
+            raise ValueError("created_at must be timezone-aware")
 
 
 @dataclass(frozen=True, slots=True)

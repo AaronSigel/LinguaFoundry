@@ -73,9 +73,15 @@ Learning workflow endpoints are available under `/learning`:
 - `POST /learning/sessions`: start or restart a lesson session.
 - `GET /learning/sessions/{session_id}/exercise`: fetch the current exercise.
 - `POST /learning/sessions/{session_id}/answers`: submit an answer.
+- `GET /learning/users/{user_id}/sessions/active`: fetch active durable
+  sessions for restart/resume flows.
 - `GET /learning/users/{user_id}/progress`: fetch learner progress.
 - `GET /learning/users/{user_id}/progress/stats`: fetch aggregate learner
   statistics.
+
+Learning sessions are durable rows with the active exercise cursor and language
+pack version used for the session. Progress rows remain aggregate per-lesson
+state and should not be used as active session identifiers.
 
 ## Verification
 
