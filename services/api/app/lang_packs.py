@@ -50,6 +50,8 @@ class LessonImportRecord:
 
     stable_id: str
     language_code: str
+    pack_id: str
+    pack_version: str
     title: str
     description: str | None
     level: str
@@ -175,6 +177,8 @@ def build_lesson_records(pack: JsonObject) -> tuple[LessonImportRecord, ...]:
                     LessonImportRecord(
                         stable_id=stable_lesson_id,
                         language_code=language_code,
+                        pack_id=pack_id,
+                        pack_version=str(pack["schema_version"]),
                         title=str(lesson["title"]),
                         description=lesson.get("description"),
                         level=level_id,
@@ -205,12 +209,18 @@ async def import_language_pack(session: AsyncSession, pack: JsonObject) -> Impor
     for record in build_lesson_records(pack):
         lesson = await session.scalar(
             select(Lesson).where(
-                Lesson.language_code == record.language_code,
+                Lesson.pack_id == record.pack_id,
+                Lesson.pack_version == record.pack_version,
                 Lesson.slug == record.stable_id,
             )
         )
         if lesson is None:
-            lesson = Lesson(language_code=record.language_code, slug=record.stable_id)
+            lesson = Lesson(
+                language_code=record.language_code,
+                pack_id=record.pack_id,
+                pack_version=record.pack_version,
+                slug=record.stable_id,
+            )
             session.add(lesson)
             await session.flush()
             stats += ImportStats(lessons_created=1)
@@ -218,6 +228,9 @@ async def import_language_pack(session: AsyncSession, pack: JsonObject) -> Impor
             stats += ImportStats(lessons_updated=1)
 
         lesson.title = record.title
+        lesson.language_code = record.language_code
+        lesson.pack_id = record.pack_id
+        lesson.pack_version = record.pack_version
         lesson.description = record.description
         lesson.level = record.level
         lesson.position = record.position

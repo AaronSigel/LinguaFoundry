@@ -1,14 +1,78 @@
+import asyncio
+import uuid
+from collections.abc import Sequence
 from datetime import datetime, timezone
 
 from services.api.app.config import Settings
+from services.api.app.db.models import (
+    Attempt,
+    Exercise,
+    LearningSession,
+    Lesson,
+    Progress,
+    ReviewState,
+    User,
+)
 from services.api.app.main import create_app
 from services.api.app.routers.learning import (
+    StartSessionRequest,
+    SubmitAnswerRequest,
     _accuracy,
     _expected_answer_text,
     _latest_datetime,
     _score_answer,
     _score_value,
+    start_session,
+    submit_answer,
 )
+
+
+class _ScalarResult:
+    def __init__(self, value: object | None) -> None:
+        self.value = value
+
+    def scalar_one_or_none(self) -> object | None:
+        return self.value
+
+
+class _QueuedAsyncSession:
+    def __init__(
+        self,
+        *,
+        execute_scalars: Sequence[object | None] = (),
+        scalar_values: Sequence[object | None] = (),
+    ) -> None:
+        self._execute_scalars = list(execute_scalars)
+        self._scalar_values = list(scalar_values)
+        self.added: list[object] = []
+        self.commits = 0
+        self.flushes = 0
+        self.refreshed: list[object] = []
+
+    async def execute(self, statement: object) -> _ScalarResult:
+        assert self._execute_scalars, f"unexpected execute query: {statement}"
+        return _ScalarResult(self._execute_scalars.pop(0))
+
+    async def scalar(self, statement: object) -> object | None:
+        assert self._scalar_values, f"unexpected scalar query: {statement}"
+        return self._scalar_values.pop(0)
+
+    def add(self, instance: object) -> None:
+        self.added.append(instance)
+
+    async def flush(self) -> None:
+        self.flushes += 1
+        for instance in self.added:
+            if isinstance(instance, Attempt) and instance.id is None:
+                instance.id = uuid.uuid4()
+            if isinstance(instance, ReviewState) and instance.id is None:
+                instance.id = uuid.uuid4()
+
+    async def commit(self) -> None:
+        self.commits += 1
+
+    async def refresh(self, instance: object) -> None:
+        self.refreshed.append(instance)
 
 
 def test_openapi_schema_includes_learning_endpoints() -> None:
@@ -21,6 +85,7 @@ def test_openapi_schema_includes_learning_endpoints() -> None:
     assert "/learning/sessions" in schema["paths"]
     assert "/learning/sessions/{session_id}/exercise" in schema["paths"]
     assert "/learning/sessions/{session_id}/answers" in schema["paths"]
+    assert "/learning/users/{user_id}/sessions/active" in schema["paths"]
     assert "/learning/users/{user_id}/progress" in schema["paths"]
     assert "/learning/users/{user_id}/progress/stats" in schema["paths"]
     assert "/learning/users/{user_id}/review" in schema["paths"]
@@ -54,3 +119,146 @@ def test_progress_stats_helpers_handle_empty_and_latest_values() -> None:
     assert _accuracy(2, 4) == 0.5
     assert _latest_datetime(None, earlier, later) == later
     assert _latest_datetime(None, None) is None
+
+
+def test_session_response_exposes_pack_version_cursor_fields() -> None:
+    app = create_app(Settings(app_env="test"))
+
+    schema = app.openapi()
+    session_properties = schema["components"]["schemas"]["SessionResponse"][
+        "properties"
+    ]
+
+    assert {
+        "session_id",
+        "completed_exercises",
+        "total_exercises",
+        "language_pack_id",
+        "language_pack_version",
+    }.issubset(session_properties)
+
+
+def test_start_session_reuses_active_pack_version_cursor() -> None:
+    user_id = uuid.uuid4()
+    lesson_id = uuid.uuid4()
+    session_id = uuid.uuid4()
+    user = User(id=user_id, telegram_id=123)
+    lesson = Lesson(
+        id=lesson_id,
+        language_code="es",
+        pack_id="es-a1-greetings",
+        pack_version="1.0",
+        slug="es-a1-greetings-a1-greetings-hello-and-goodbye",
+        title="Hello and goodbye",
+        is_published=True,
+    )
+    progress = Progress(
+        user_id=user_id,
+        lesson_id=lesson_id,
+        status="in_progress",
+        completed_exercises=1,
+        total_exercises=2,
+    )
+    active_session = LearningSession(
+        id=session_id,
+        user_id=user_id,
+        lesson_id=lesson_id,
+        language_pack_id=lesson.pack_id,
+        language_pack_version=lesson.pack_version,
+        current_exercise_index=1,
+        status="in_progress",
+    )
+    db_session = _QueuedAsyncSession(
+        execute_scalars=(user, lesson, progress, active_session),
+        scalar_values=(2,),
+    )
+
+    response = asyncio.run(
+        start_session(
+            StartSessionRequest(user_id=user_id, lesson_id=lesson_id),
+            db_session,
+        )
+    )
+
+    assert response.session_id == session_id
+    assert response.completed_exercises == 1
+    assert response.total_exercises == 2
+    assert response.language_pack_id == "es-a1-greetings"
+    assert response.language_pack_version == "1.0"
+    assert db_session.added == []
+    assert db_session.commits == 1
+    assert active_session in db_session.refreshed
+
+
+def test_submit_answer_persists_attempt_and_review_state_with_pack_version() -> None:
+    user_id = uuid.uuid4()
+    lesson_id = uuid.uuid4()
+    exercise_id = uuid.uuid4()
+    session_id = uuid.uuid4()
+    learning_session = LearningSession(
+        id=session_id,
+        user_id=user_id,
+        lesson_id=lesson_id,
+        language_pack_id="es-a1-greetings",
+        language_pack_version="1.0",
+        current_exercise_index=0,
+        status="in_progress",
+    )
+    exercise = Exercise(
+        id=exercise_id,
+        lesson_id=lesson_id,
+        slug="translate-goodbye",
+        kind="text_input",
+        prompt="Translate: goodbye",
+        payload={},
+        answer={"accepted_answers": ["adios"]},
+        position=1,
+    )
+    progress = Progress(
+        user_id=user_id,
+        lesson_id=lesson_id,
+        status="in_progress",
+        completed_exercises=0,
+        total_exercises=2,
+    )
+    db_session = _QueuedAsyncSession(
+        execute_scalars=(learning_session, exercise, progress, None),
+        scalar_values=(2,),
+    )
+
+    response = asyncio.run(
+        submit_answer(
+            session_id,
+            SubmitAnswerRequest(answer="hola"),
+            db_session,
+        )
+    )
+
+    attempt = next(item for item in db_session.added if isinstance(item, Attempt))
+    review_state = next(
+        item for item in db_session.added if isinstance(item, ReviewState)
+    )
+    assert response.exercise_id == exercise_id
+    assert response.is_correct is False
+    assert response.session_completed is False
+    assert response.progress.completed_exercises == 1
+    assert response.progress.language_pack_id == "es-a1-greetings"
+    assert attempt.user_id == user_id
+    assert attempt.exercise_id == exercise_id
+    assert attempt.learning_session_id == session_id
+    assert attempt.language_pack_id == "es-a1-greetings"
+    assert attempt.language_pack_version == "1.0"
+    assert attempt.answer == {"answer": "hola"}
+    assert attempt.is_correct is False
+    assert review_state.user_id == user_id
+    assert review_state.lesson_id == lesson_id
+    assert review_state.exercise_id == exercise_id
+    assert review_state.learning_session_id == session_id
+    assert review_state.language_pack_id == "es-a1-greetings"
+    assert review_state.language_pack_version == "1.0"
+    assert review_state.last_attempt_id == attempt.id
+    assert review_state.due_at > learning_session.last_seen_at
+    assert learning_session.current_exercise_index == 1
+    assert progress.completed_exercises == 1
+    assert db_session.flushes == 1
+    assert db_session.commits == 1

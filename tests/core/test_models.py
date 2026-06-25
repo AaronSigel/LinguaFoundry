@@ -13,6 +13,8 @@ from linguafoundry_core import (
     LearningSession,
     Lesson,
     Progress,
+    ReviewState,
+    ReviewStatus,
     User,
     UserProgressStats,
     calculate_user_progress_stats,
@@ -41,12 +43,27 @@ def test_learning_domain_entities_can_be_created() -> None:
         exercise_id=exercise.id,
         submitted_answer="hola",
         result=AttemptResult.CORRECT,
+        session_id="session-1",
+        language_pack_id="es-a1-greetings",
+        language_pack_version="1.0",
     )
     session = LearningSession(
         id="session-1",
         user_id=user.id,
         lesson_id=lesson.id,
+        language_pack_id="es-a1-greetings",
+        language_pack_version="1.0",
         status=CompletionStatus.IN_PROGRESS,
+    )
+    review_state = ReviewState(
+        user_id=user.id,
+        exercise_id=exercise.id,
+        lesson_id=lesson.id,
+        language_pack_id="es-a1-greetings",
+        language_pack_version="1.0",
+        due_at=attempt.attempted_at,
+        last_attempt_id=attempt.id,
+        session_id=session.id,
     )
     progress = Progress(
         user_id=user.id,
@@ -60,6 +77,7 @@ def test_learning_domain_entities_can_be_created() -> None:
     assert language.code == "es"
     assert lesson.language_code == "es"
     assert session.completed_at is None
+    assert review_state.status is ReviewStatus.ACTIVE
     assert progress.completion_ratio == 1.0
 
 
@@ -69,6 +87,8 @@ def test_completed_session_requires_completion_timestamp() -> None:
             id="session-1",
             user_id="user-1",
             lesson_id="lesson-1",
+            language_pack_id="pack-1",
+            language_pack_version="1.0",
             status=CompletionStatus.COMPLETED,
         )
 
@@ -81,9 +101,35 @@ def test_completed_at_cannot_precede_started_at() -> None:
             id="session-1",
             user_id="user-1",
             lesson_id="lesson-1",
+            language_pack_id="pack-1",
+            language_pack_version="1.0",
             status=CompletionStatus.COMPLETED,
             started_at=started_at,
             completed_at=started_at - timedelta(minutes=1),
+        )
+
+
+def test_learning_session_rejects_negative_cursor() -> None:
+    with pytest.raises(ValueError, match="current_exercise_index"):
+        LearningSession(
+            id="session-1",
+            user_id="user-1",
+            lesson_id="lesson-1",
+            language_pack_id="pack-1",
+            language_pack_version="1.0",
+            current_exercise_index=-1,
+        )
+
+
+def test_review_state_requires_timezone_aware_due_date() -> None:
+    with pytest.raises(ValueError, match="due_at must be timezone-aware"):
+        ReviewState(
+            user_id="user-1",
+            exercise_id="exercise-1",
+            lesson_id="lesson-1",
+            language_pack_id="pack-1",
+            language_pack_version="1.0",
+            due_at=datetime(2026, 1, 1),
         )
 
 
