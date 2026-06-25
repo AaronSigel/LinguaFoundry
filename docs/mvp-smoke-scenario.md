@@ -117,12 +117,22 @@ Use the API path when validating the backend contract without Telegram:
    non-empty `last_activity_at`, and accuracy fields reflecting the submitted
    answers.
 
+1. View missed-exercise review.
+
+   ```shell
+   curl -s http://localhost:8000/learning/users/"$USER_ID"/review
+   ```
+
+   Expected result: HTTP `200` with a `cards` list containing the intentionally
+   missed exercise until a later correct attempt clears it.
+
 ## Telegram Smoke Path
 
 Use the Telegram path when validating the learner-facing MVP:
 
 1. Send `/start` to the bot.
-1. Select or start a lesson with `/lesson <lesson-id>`.
+1. List lessons with `/lessons`.
+1. Select or start a lesson with `/lesson <lesson-slug-or-id>`.
 1. Answer one exercise incorrectly.
 1. Finish the lesson.
 1. Send `/review`, `/mistakes`, or `/repeat_errors`.

@@ -8,6 +8,13 @@ from typing import Annotated, TypeVar
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from linguafoundry_core import (
+    Attempt as CoreAttempt,
+    AttemptResult,
+    Exercise as CoreExercise,
+    ExerciseType,
+    build_mistake_review_queue,
+)
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -132,6 +139,23 @@ class ProgressStatsResponse(BaseModel):
     completed_lessons: int
     active_repetitions: int
     last_activity_at: datetime | None
+
+
+class ReviewCardResponse(BaseModel):
+    """Exercise selected for mistake review."""
+
+    exercise_id: UUID
+    prompt: str
+    expected_answer: str
+    incorrect_attempts: int
+    last_attempted_at: datetime
+
+
+class ReviewQueueResponse(BaseModel):
+    """Due mistake review queue for a learner."""
+
+    user_id: UUID
+    cards: list[ReviewCardResponse]
 
 
 @router.post(
@@ -403,6 +427,50 @@ async def get_progress_stats(
     )
 
 
+@router.get("/users/{user_id}/review", response_model=ReviewQueueResponse)
+async def get_review_queue(
+    user_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    limit: int = 5,
+) -> ReviewQueueResponse:
+    """Return exercises whose latest non-skipped attempt was incorrect."""
+
+    await _get_user(session, user_id)
+    if limit < 1:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="limit must be positive.",
+        )
+
+    statement = (
+        select(Attempt, Exercise)
+        .join(Exercise, Exercise.id == Attempt.exercise_id)
+        .where(Attempt.user_id == user_id, Attempt.is_correct.is_not(None))
+        .order_by(Attempt.attempted_at, Attempt.id)
+    )
+    rows = (await session.execute(statement)).all()
+    attempts = [_core_attempt(attempt) for attempt, _exercise in rows]
+    exercises = {
+        _exercise.id: _core_exercise(_exercise) for _attempt, _exercise in rows
+    }
+    cards = [
+        ReviewCardResponse(
+            exercise_id=UUID(card.exercise_id),
+            prompt=card.prompt,
+            expected_answer=card.expected_answer,
+            incorrect_attempts=card.incorrect_attempts,
+            last_attempted_at=card.last_attempted_at,
+        )
+        for card in build_mistake_review_queue(
+            attempts=attempts,
+            exercises=exercises.values(),
+            user_id=str(user_id),
+            limit=limit,
+        )
+    ]
+    return ReviewQueueResponse(user_id=user_id, cards=cards)
+
+
 async def _scalar_or_none(
     session: AsyncSession,
     statement: Select[tuple[ModelT]],
@@ -491,6 +559,38 @@ def _exercise_response(exercise: Exercise) -> ExerciseResponse:
     )
 
 
+def _core_attempt(attempt: Attempt) -> CoreAttempt:
+    submitted_answer = attempt.answer.get("answer")
+    return CoreAttempt(
+        id=str(attempt.id),
+        user_id=str(attempt.user_id),
+        exercise_id=str(attempt.exercise_id),
+        submitted_answer=str(submitted_answer) if submitted_answer is not None else "",
+        result=AttemptResult.CORRECT
+        if attempt.is_correct is True
+        else AttemptResult.INCORRECT,
+        attempted_at=attempt.attempted_at,
+    )
+
+
+def _core_exercise(exercise: Exercise) -> CoreExercise:
+    return CoreExercise(
+        id=str(exercise.id),
+        lesson_id=str(exercise.lesson_id),
+        exercise_type=_core_exercise_type(exercise.kind),
+        prompt=exercise.prompt,
+        expected_answer=_expected_answer_text(exercise.answer) or "Answer unavailable",
+        order=exercise.position,
+    )
+
+
+def _core_exercise_type(kind: str) -> ExerciseType:
+    try:
+        return ExerciseType(kind)
+    except ValueError:
+        return ExerciseType.TEXT_INPUT
+
+
 def _score_value(is_correct: bool | None) -> Decimal | None:
     if is_correct is None:
         return None
@@ -526,6 +626,13 @@ def _accepted_answers(expected_answer: dict[str, object] | None) -> list[object]
             return [value]
 
     return []
+
+
+def _expected_answer_text(expected_answer: dict[str, object] | None) -> str:
+    accepted_answers = _accepted_answers(expected_answer)
+    if not accepted_answers:
+        return ""
+    return ", ".join(str(answer) for answer in accepted_answers)
 
 
 def _normalize_answer(answer: str) -> str:

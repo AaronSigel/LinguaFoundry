@@ -1,3 +1,5 @@
+import pytest
+
 from services.bot.app.adapter import TelegramBotAdapter
 from services.bot.app.api_client import ApiClientError
 
@@ -11,10 +13,16 @@ class RecordingTelegramClient:
 
 
 class HealthyApiClient:
+    def __init__(self) -> None:
+        self.answers: list[tuple[str, str]] = []
+        self.registered_telegram_ids: list[int] = []
+        self.started_sessions: list[tuple[str, str]] = []
+
     def health(self) -> dict[str, str]:
         return {"status": "ok"}
 
     def register_telegram_user(self, telegram_id: int) -> dict[str, str]:
+        self.registered_telegram_ids.append(telegram_id)
         return {"id": f"user-{telegram_id}"}
 
     def progress_stats(self, user_id: str) -> dict[str, object]:
@@ -26,6 +34,89 @@ class HealthyApiClient:
             "completed_lessons": 2,
             "active_repetitions": 1,
             "last_activity_at": "2026-01-02T10:30:00+00:00",
+        }
+
+    def list_lessons(self) -> list[dict[str, object]]:
+        return [
+            {
+                "id": "lesson-1",
+                "slug": "intro",
+                "title": "Intro",
+                "exercise_count": 2,
+            }
+        ]
+
+    def start_session(self, user_id: str, lesson_id: str) -> dict[str, object]:
+        assert user_id == "user-456"
+        assert lesson_id == "lesson-1"
+        self.started_sessions.append((user_id, lesson_id))
+        return {
+            "session_id": "session-1",
+            "user_id": user_id,
+            "lesson_id": lesson_id,
+            "status": "in_progress",
+            "completed_exercises": 0,
+            "total_exercises": 2,
+        }
+
+    def current_exercise(self, session_id: str) -> dict[str, object]:
+        assert session_id == "session-1"
+        if self.answers:
+            return {
+                "session_id": session_id,
+                "status": "in_progress",
+                "exercise": {
+                    "id": "exercise-2",
+                    "slug": "bye",
+                    "kind": "text_input",
+                    "prompt": "Translate: goodbye",
+                    "payload": {},
+                    "position": 2,
+                },
+            }
+        return {
+            "session_id": session_id,
+            "status": "in_progress",
+            "exercise": {
+                "id": "exercise-1",
+                "slug": "hello",
+                "kind": "text_input",
+                "prompt": "Translate: hello",
+                "payload": {},
+                "position": 1,
+            },
+        }
+
+    def submit_answer(self, session_id: str, answer: str) -> dict[str, object]:
+        self.answers.append((session_id, answer))
+        completed = len(self.answers) == 2
+        return {
+            "attempt_id": f"attempt-{len(self.answers)}",
+            "exercise_id": f"exercise-{len(self.answers)}",
+            "is_correct": answer == "hola",
+            "session_completed": completed,
+            "progress": {
+                "session_id": session_id,
+                "user_id": "user-456",
+                "lesson_id": "lesson-1",
+                "status": "completed" if completed else "in_progress",
+                "completed_exercises": len(self.answers),
+                "total_exercises": 2,
+            },
+        }
+
+    def review_queue(self, user_id: str) -> dict[str, object]:
+        return {
+            "user_id": user_id,
+            "cards": [
+                {
+                    "exercise_id": "exercise-2",
+                    "prompt": "Translate: goodbye",
+                    "expected_answer": "adios",
+                    "incorrect_attempts": 1,
+                    "last_attempted_at": "2026-01-02T10:30:00+00:00",
+                }
+            ],
         }
 
 
@@ -62,7 +153,128 @@ def test_help_command_lists_available_commands() -> None:
             "Available commands:\n"
             "/start - start using LinguaFoundry\n"
             "/help - show available commands\n"
+            "/lessons - list available lessons\n"
+            "/lesson <lesson> - start a lesson\n"
+            "/review - review missed exercises\n"
             "/progress - show your learning progress",
+        )
+    ]
+
+
+def test_lessons_command_lists_api_lessons() -> None:
+    telegram = RecordingTelegramClient()
+    bot = TelegramBotAdapter(telegram, HealthyApiClient())
+
+    handled = bot.process_update({"message": {"chat": {"id": 123}, "text": "/lessons"}})
+
+    assert handled is True
+    assert telegram.sent_messages == [
+        (123, "Choose a lesson:\n/lesson intro - Intro (2 exercises)")
+    ]
+
+
+def test_lesson_command_starts_api_session_and_text_answers_advance() -> None:
+    telegram = RecordingTelegramClient()
+    api_client = HealthyApiClient()
+    bot = TelegramBotAdapter(telegram, api_client)
+
+    bot.process_update(
+        {
+            "message": {
+                "chat": {"id": 123},
+                "from": {"id": 456},
+                "text": "/lesson intro",
+            }
+        }
+    )
+    bot.process_update({"message": {"chat": {"id": 123}, "text": "hola"}})
+    bot.process_update({"message": {"chat": {"id": 123}, "text": "wrong"}})
+
+    assert telegram.sent_messages == [
+        (
+            123,
+            "Lesson started: Intro\n\nExercise 1/2\nTranslate: hello",
+        ),
+        (
+            123,
+            "Correct.\n\nExercise 2/2\nTranslate: goodbye",
+        ),
+        (
+            123,
+            "Incorrect.\n\n"
+            "Lesson complete: 2/2 exercises answered.\n"
+            "Use /lessons to choose another lesson.",
+        ),
+    ]
+    assert api_client.registered_telegram_ids == [456]
+    assert api_client.started_sessions == [("user-456", "lesson-1")]
+    assert api_client.answers == [("session-1", "hola"), ("session-1", "wrong")]
+
+
+def test_text_answer_after_completed_lesson_requires_new_lesson() -> None:
+    telegram = RecordingTelegramClient()
+    bot = TelegramBotAdapter(telegram, HealthyApiClient())
+
+    bot.process_update(
+        {
+            "message": {
+                "chat": {"id": 123},
+                "from": {"id": 456},
+                "text": "/lesson intro",
+            }
+        }
+    )
+    bot.process_update({"message": {"chat": {"id": 123}, "text": "hola"}})
+    bot.process_update({"message": {"chat": {"id": 123}, "text": "adios"}})
+
+    handled = bot.process_update({"message": {"chat": {"id": 123}, "text": "otra"}})
+
+    assert handled is True
+    assert telegram.sent_messages[-1] == (
+        123,
+        "Choose a lesson before sending an answer.\n\n"
+        "Choose a lesson:\n"
+        "/lesson intro - Intro (2 exercises)",
+    )
+
+
+def test_text_answer_before_lesson_prompts_for_api_lesson_selection() -> None:
+    telegram = RecordingTelegramClient()
+    bot = TelegramBotAdapter(telegram, HealthyApiClient())
+
+    handled = bot.process_update({"message": {"chat": {"id": 123}, "text": "hola"}})
+
+    assert handled is True
+    assert telegram.sent_messages == [
+        (
+            123,
+            "Choose a lesson before sending an answer.\n\n"
+            "Choose a lesson:\n"
+            "/lesson intro - Intro (2 exercises)",
+        )
+    ]
+
+
+@pytest.mark.parametrize("command", ["/review", "/mistakes", "/repeat_errors"])
+def test_review_commands_use_api_review_queue(command: str) -> None:
+    telegram = RecordingTelegramClient()
+    bot = TelegramBotAdapter(telegram, HealthyApiClient())
+
+    handled = bot.process_update(
+        {
+            "message": {
+                "chat": {"id": 123},
+                "from": {"id": 456},
+                "text": command,
+            }
+        }
+    )
+
+    assert handled is True
+    assert telegram.sent_messages == [
+        (
+            123,
+            "Review your missed exercises:\n1. Translate: goodbye\nAnswer: adios",
         )
     ]
 
@@ -133,14 +345,21 @@ def test_unknown_command_sends_help_hint() -> None:
     ]
 
 
-def test_non_command_text_is_ignored() -> None:
+def test_non_command_text_uses_answer_flow() -> None:
     telegram = RecordingTelegramClient()
     bot = TelegramBotAdapter(telegram, HealthyApiClient())
 
     handled = bot.process_update({"message": {"chat": {"id": 123}, "text": "hello"}})
 
-    assert handled is False
-    assert telegram.sent_messages == []
+    assert handled is True
+    assert telegram.sent_messages == [
+        (
+            123,
+            "Choose a lesson before sending an answer.\n\n"
+            "Choose a lesson:\n"
+            "/lesson intro - Intro (2 exercises)",
+        )
+    ]
 
 
 def test_start_command_reports_api_connectivity_failure() -> None:
