@@ -306,7 +306,39 @@ def _format_current_exercise(
     total = _int_stat(session_payload, "total_exercises")
     number = completed + 1
     prefix = f"Exercise {number}/{total}" if total else f"Exercise {number}"
-    return f"{prefix}\n{_string_field(exercise, 'prompt')}"
+    lines = [prefix, _string_field(exercise, "prompt")]
+    lines.extend(_format_multiple_choice_options(exercise))
+    return "\n".join(lines)
+
+
+def _format_multiple_choice_options(exercise: dict[str, Any]) -> list[str]:
+    if exercise.get("kind") != "multiple_choice":
+        return []
+
+    payload = exercise.get("payload")
+    if not isinstance(payload, dict):
+        return []
+
+    options = payload.get("options")
+    if not isinstance(options, list):
+        return []
+
+    lines = ["Options:"]
+    for index, option in enumerate(options, start=1):
+        if not isinstance(option, dict):
+            continue
+        option_id = option.get("id")
+        option_text = option.get("text")
+        if not isinstance(option_id, str) or not isinstance(option_text, str):
+            continue
+        if not option_id.strip() or not option_text.strip():
+            continue
+        label = (
+            option_text if option_id == option_text else f"{option_id} - {option_text}"
+        )
+        lines.append(f"{index}. {label}")
+
+    return lines if len(lines) > 1 else []
 
 
 def _format_answer_result(result: dict[str, Any]) -> str:
