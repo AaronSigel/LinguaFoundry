@@ -39,10 +39,12 @@ Spanish A1 example pack, runs the learner workflow through the FastAPI routes,
 and verifies persisted attempts, progress, and review state after a new app
 instance is created. It is skipped unless `TEST_DATABASE_URL` is set. Use a
 disposable PostgreSQL database with a name ending in `_test`; the test refuses
-other database targets because it drops and recreates schema:
+other database targets because it drops and recreates schema. Include an
+explicit database user so local and CI runs do not fall back to the current OS
+user:
 
 ```shell
-TEST_DATABASE_URL=postgresql+asyncpg://localhost:5432/linguafoundry_test pytest services/api/tests/test_mvp_integration.py
+TEST_DATABASE_URL=postgresql+asyncpg://linguafoundry@localhost:5432/linguafoundry_test pytest services/api/tests/test_mvp_integration.py
 ```
 
 The language-pack tests validate committed example packs against the JSON Schema

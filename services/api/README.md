@@ -46,8 +46,10 @@ FastAPI backend for LinguaFoundry HTTP endpoints.
 
 - `app/main.py`: application factory and ASGI app export.
 - `app/config.py`: environment-backed runtime settings.
+- `app/db`: SQLAlchemy models, engine, and session helpers.
+- `app/lang_packs.py`: language pack validation and import commands.
 - `app/routers`: HTTP route modules.
-- `app/dependencies.py`: dependency providers for future domain integration.
+- `app/logging.py`: service logging configuration.
 - `tests`: focused service tests.
 
 ## Configuration

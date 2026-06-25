@@ -18,6 +18,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
 
     resolved_settings = settings or get_settings()
+    if (
+        resolved_settings.app_env.casefold() == "production"
+        and not resolved_settings.api_key
+    ):
+        raise RuntimeError("API_KEY is required when APP_ENV=production")
     configure_logging(resolved_settings.log_level)
     app = FastAPI(
         title="LinguaFoundry API",

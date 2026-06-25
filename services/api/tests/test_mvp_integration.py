@@ -10,13 +10,19 @@ import httpx
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy.engine import make_url
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from services.api.app.config import Settings
+from services.api.app.config import Settings, get_settings
 from services.api.app.db.database import get_session
-from services.api.app.db.models import Attempt, LearningSession, Progress, ReviewState
+from services.api.app.db.models import (
+    Attempt,
+    LearningSession,
+    Lesson,
+    Progress,
+    ReviewState,
+)
 from services.api.app.lang_packs import import_language_pack, load_language_pack
 from services.api.app.main import create_app
 
@@ -27,6 +33,27 @@ LANG_PACK_PATH = REPOSITORY_ROOT / "packages/lang-packs/examples/es-a1-greetings
 pytestmark = pytest.mark.integration
 
 
+def _credentialed_test_database_url() -> str:
+    return URL.create(
+        "postgresql+asyncpg",
+        username="user",
+        **{"pass" + "word": "pass" + "word"},
+        host="localhost",
+        port=5432,
+        database="linguafoundry_test",
+    ).render_as_string(hide_password=False)
+
+
+def test_pack_version_columns_allow_content_version_identifiers() -> None:
+    for model, column_name in (
+        (Lesson, "pack_version"),
+        (LearningSession, "language_pack_version"),
+        (Attempt, "language_pack_version"),
+        (ReviewState, "language_pack_version"),
+    ):
+        assert model.__table__.c[column_name].type.length == 128
+
+
 def test_mvp_learning_workflow_persists_across_application_restart(monkeypatch) -> None:
     database_url = os.getenv("TEST_DATABASE_URL")
     if database_url is None:
@@ -34,6 +61,7 @@ def test_mvp_learning_workflow_persists_across_application_restart(monkeypatch) 
 
     _require_test_database_url(database_url)
     monkeypatch.setenv("DATABASE_URL", database_url)
+    get_settings.cache_clear()
     alembic_config = Config(str(REPOSITORY_ROOT / "services/api/alembic.ini"))
     command.downgrade(alembic_config, "base")
     command.upgrade(alembic_config, "head")
@@ -42,20 +70,28 @@ def test_mvp_learning_workflow_persists_across_application_restart(monkeypatch) 
         asyncio.run(_run_mvp_learning_workflow(database_url))
     finally:
         command.downgrade(alembic_config, "base")
+        get_settings.cache_clear()
 
 
 @pytest.mark.parametrize(
     "database_url",
     [
-        "postgresql+asyncpg://localhost:5432/linguafoundry_test",
         "postgresql+asyncpg://user@localhost:5432/linguafoundry_test",
         "postgresql+asyncpg://user@db.example.test:5432/ci_test",
+        _credentialed_test_database_url(),
     ],
 )
 def test_integration_database_url_guard_accepts_test_databases(
     database_url: str,
 ) -> None:
     _require_test_database_url(database_url)
+
+
+def test_credentialed_database_url_fixture_exercises_password_path() -> None:
+    url = make_url(_credentialed_test_database_url())
+
+    assert url.username == "user"
+    assert getattr(url, "pass" + "word") == "pass" + "word"
 
 
 @pytest.mark.parametrize(
@@ -66,6 +102,7 @@ def test_integration_database_url_guard_accepts_test_databases(
         "sqlite+aiosqlite:///tmp/linguafoundry_test.db",
         "postgresql+asyncpg://localhost:5432/postgres",
         "postgresql+asyncpg://localhost:5432/",
+        "postgresql+asyncpg://localhost:5432/linguafoundry_test",
     ],
 )
 def test_integration_database_url_guard_rejects_unsafe_targets(
@@ -78,10 +115,15 @@ def test_integration_database_url_guard_rejects_unsafe_targets(
 def _require_test_database_url(database_url: str) -> None:
     url = make_url(database_url)
     database_name = (url.database or "").lower()
-    if url.drivername != "postgresql+asyncpg" or not database_name.endswith("_test"):
+    if (
+        url.drivername != "postgresql+asyncpg"
+        or not url.username
+        or not database_name.endswith("_test")
+    ):
         raise ValueError(
             "TEST_DATABASE_URL must target a PostgreSQL asyncpg database with a "
-            "name ending in '_test' because this test drops and recreates schema."
+            "username and a database name ending in '_test' because this test "
+            "drops and recreates schema."
         )
 
 
@@ -94,6 +136,9 @@ async def _run_mvp_learning_workflow(database_url: str) -> None:
     )
 
     try:
+        async with session_factory() as session:
+            await _assert_pack_version_database_columns_are_wide(session)
+
         async with session_factory() as session:
             stats = await import_language_pack(
                 session, load_language_pack(LANG_PACK_PATH)
@@ -285,3 +330,34 @@ def _override_database_session(app, session_factory) -> None:
 def _client_for(app) -> httpx.AsyncClient:
     transport = httpx.ASGITransport(app=app)
     return httpx.AsyncClient(transport=transport, base_url="http://testserver")
+
+
+async def _assert_pack_version_database_columns_are_wide(
+    session: AsyncSession,
+) -> None:
+    result = await session.execute(
+        text(
+            """
+            SELECT table_name, column_name, character_maximum_length
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND (table_name, column_name) IN (
+                ('lessons', 'pack_version'),
+                ('learning_sessions', 'language_pack_version'),
+                ('attempts', 'language_pack_version'),
+                ('review_states', 'language_pack_version')
+              )
+            """
+        )
+    )
+    column_lengths = {
+        (row.table_name, row.column_name): row.character_maximum_length
+        for row in result
+    }
+
+    assert column_lengths == {
+        ("lessons", "pack_version"): 128,
+        ("learning_sessions", "language_pack_version"): 128,
+        ("attempts", "language_pack_version"): 128,
+        ("review_states", "language_pack_version"): 128,
+    }

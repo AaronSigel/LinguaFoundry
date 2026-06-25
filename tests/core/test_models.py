@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+import linguafoundry_core
 from linguafoundry_core import (
     Attempt,
     AttemptResult,
@@ -19,6 +20,10 @@ from linguafoundry_core import (
     UserProgressStats,
     calculate_user_progress_stats,
 )
+
+
+def test_core_public_exports_are_unique() -> None:
+    assert len(linguafoundry_core.__all__) == len(set(linguafoundry_core.__all__))
 
 
 def test_learning_domain_entities_can_be_created() -> None:

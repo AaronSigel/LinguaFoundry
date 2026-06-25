@@ -1,10 +1,12 @@
 import asyncio
 
 import httpx
+import pytest
+from fastapi.routing import APIRoute
 
 from services.api.app.config import Settings
-from services.api.app.dependencies import get_domain_context
 from services.api.app.main import create_app
+from services.api.app.routers.health import router as health_router
 
 
 def test_health_endpoint_returns_environment_metadata() -> None:
@@ -15,11 +17,6 @@ def test_health_endpoint_returns_environment_metadata() -> None:
             service_name="test-api",
         )
     )
-
-    async def domain_context() -> dict[str, str]:
-        return {"status": "ready"}
-
-    app.dependency_overrides[get_domain_context] = domain_context
 
     async def request_health() -> httpx.Response:
         transport = httpx.ASGITransport(app=app)
@@ -46,6 +43,25 @@ def test_openapi_schema_includes_health_endpoint() -> None:
     schema = app.openapi()
 
     assert "/health" in schema["paths"]
+
+
+def test_health_endpoint_has_no_dependency_hooks() -> None:
+    health_routes = [
+        route
+        for route in health_router.routes
+        if isinstance(route, APIRoute) and route.path == "/health"
+    ]
+
+    assert len(health_routes) == 1
+    health_route = health_routes[0]
+
+    assert health_route.methods == {"GET"}
+    assert health_route.dependant.dependencies == []
+
+
+def test_production_requires_api_key() -> None:
+    with pytest.raises(RuntimeError, match="API_KEY is required"):
+        create_app(Settings(app_env="production", api_key=""))
 
 
 def test_api_key_protects_non_public_routes() -> None:

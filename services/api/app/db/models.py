@@ -88,7 +88,7 @@ class Lesson(Base):
     )
     language_code: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
     pack_id: Mapped[str] = mapped_column(String(128), nullable=False)
-    pack_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    pack_version: Mapped[str] = mapped_column(String(128), nullable=False)
     slug: Mapped[str] = mapped_column(String(128), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
@@ -213,7 +213,7 @@ class LearningSession(Base):
         index=True,
     )
     language_pack_id: Mapped[str] = mapped_column(String(128), nullable=False)
-    language_pack_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    language_pack_version: Mapped[str] = mapped_column(String(128), nullable=False)
     status: Mapped[str] = mapped_column(
         String(32),
         nullable=False,
@@ -282,7 +282,7 @@ class Attempt(Base):
         index=True,
     )
     language_pack_id: Mapped[str] = mapped_column(String(128), nullable=False)
-    language_pack_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    language_pack_version: Mapped[str] = mapped_column(String(128), nullable=False)
     answer: Mapped[dict[str, object]] = mapped_column(
         JSONB,
         nullable=False,
@@ -401,7 +401,7 @@ class ReviewState(Base):
         index=True,
     )
     language_pack_id: Mapped[str] = mapped_column(String(128), nullable=False)
-    language_pack_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    language_pack_version: Mapped[str] = mapped_column(String(128), nullable=False)
     status: Mapped[str] = mapped_column(
         String(32),
         nullable=False,
