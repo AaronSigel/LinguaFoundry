@@ -1,3 +1,4 @@
 alembic>=1.13,<2
 asyncpg>=0.29,<1
+jsonschema>=4.22,<5
 SQLAlchemy>=2.0,<3

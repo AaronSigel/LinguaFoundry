@@ -23,6 +23,13 @@ Run migrations from the repository root:
 alembic -c services/api/alembic.ini upgrade head
 ```
 
+Validate and import language packs from the repository root:
+
+```bash
+linguafoundry-lang-packs --check packages/lang-packs/examples
+linguafoundry-lang-packs packages/lang-packs/examples
+```
+
 Create future migrations from SQLAlchemy model changes:
 
 ```bash
