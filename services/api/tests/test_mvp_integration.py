@@ -258,10 +258,26 @@ async def _run_mvp_learning_workflow(database_url: str) -> None:
             )
             assert review_response.status_code == 200
             review_payload = review_response.json()
-            assert len(review_payload["cards"]) == 1
-            assert review_payload["cards"][0]["prompt"] == "Translate: goodbye"
-            assert review_payload["cards"][0]["expected_answer"] == "adios"
-            assert review_payload["cards"][0]["incorrect_attempts"] == 1
+            assert review_payload["cards"] == []
+
+            async with session_factory() as session:
+                await session.execute(
+                    text(
+                        "UPDATE review_states SET due_at = now() - interval '1 minute'"
+                    )
+                )
+                await session.commit()
+
+            due_review_response = await restarted_client.get(
+                f"/learning/users/{user_id}/review"
+            )
+            assert due_review_response.status_code == 200
+            due_review_payload = due_review_response.json()
+            assert len(due_review_payload["cards"]) == 1
+            assert due_review_payload["cards"][0]["exercise_id"] == second_exercise_id
+            assert due_review_payload["cards"][0]["prompt"] == "Translate: goodbye"
+            assert due_review_payload["cards"][0]["expected_answer"] == "adios"
+            assert due_review_payload["cards"][0]["incorrect_attempts"] == 1
 
         async with session_factory() as session:
             attempts = (

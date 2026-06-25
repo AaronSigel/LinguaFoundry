@@ -83,8 +83,8 @@ Learning workflow endpoints are available under `/learning`:
 - `GET /learning/users/{user_id}/progress`: fetch learner progress.
 - `GET /learning/users/{user_id}/progress/stats`: fetch aggregate learner
   statistics.
-- `GET /learning/users/{user_id}/review`: fetch active missed exercises for
-  mistake review.
+- `GET /learning/users/{user_id}/review`: fetch due active missed exercises
+  for mistake review.
 
 When `API_KEY` is configured, call these endpoints with:
 
