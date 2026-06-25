@@ -144,13 +144,13 @@ and returns aggregate learner progress.
 
 ## Automated Coverage
 
-The scaffold includes an API smoke contract test that verifies the route
-sequence needed by this scenario is exposed in the OpenAPI schema:
+The scaffold includes an API MVP contract test that verifies the route sequence
+needed by this scenario is exposed in the OpenAPI schema:
 
 ```shell
-pytest services/api/tests/test_mvp_smoke_contract.py
+pytest services/api/tests/test_mvp_contract.py
 ```
 
-This does not replace a live database smoke run. Full automation should be
-expanded when the repository gains deterministic lesson seed data for local and
-CI environments.
+CI also runs a PostgreSQL-backed API integration test for this learner path.
+Use this manual smoke scenario when validating the Telegram bot or local
+end-to-end behavior outside automated API coverage.

@@ -69,10 +69,10 @@ Run the focused API tests with:
 pytest services/api/tests
 ```
 
-Run the MVP smoke contract test with:
+Run the MVP OpenAPI contract test with:
 
 ```shell
-pytest services/api/tests/test_mvp_smoke_contract.py
+pytest services/api/tests/test_mvp_contract.py
 ```
 
 When more code is added, prefer focused tests close to the changed package or
