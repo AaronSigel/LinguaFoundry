@@ -18,6 +18,9 @@ dependencies = [
     "uvicorn[standard]>=0.30,<1",
 ]
 
+[project.scripts]
+linguafoundry-lang-packs = "services.api.app.lang_packs:main"
+
 [tool.setuptools.packages.find]
 where = [".", "packages/core"]
 include = ["services*", "linguafoundry_core*"]

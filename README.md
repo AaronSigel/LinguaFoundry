@@ -65,6 +65,8 @@ these variables:
 - `DATABASE_URL`: host-side API database URL for non-container runs.
 - `DATABASE_ECHO`: set to `true` to log SQL statements locally.
 - `SEED_LANG_PACKS`: import example language packs during API container startup.
+- `SEED_LANG_PACK_PATHS`: space-separated language pack files or directories
+  imported when `SEED_LANG_PACKS` is true.
 
 Start PostgreSQL, run API migrations, and launch the API and Telegram bot with:
 
@@ -97,8 +99,8 @@ alembic -c services/api/alembic.ini upgrade head
 Validate and import example language packs with:
 
 ```shell
-python -m services.api.app.lang_packs --check packages/lang-packs/examples
-python -m services.api.app.lang_packs packages/lang-packs/examples
+linguafoundry-lang-packs --check packages/lang-packs/examples
+linguafoundry-lang-packs packages/lang-packs/examples
 ```
 
 Run the API service locally with:
