@@ -48,7 +48,6 @@ __all__ = [
     "LearningLesson",
     "LearningSessionManager",
     "LearningSession",
-    "LearningSessionManager",
     "Lesson",
     "Progress",
     "ReviewCard",

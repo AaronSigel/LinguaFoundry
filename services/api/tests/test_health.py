@@ -1,6 +1,7 @@
 import asyncio
 
 import httpx
+import pytest
 
 from services.api.app.config import Settings
 from services.api.app.dependencies import get_domain_context
@@ -46,6 +47,11 @@ def test_openapi_schema_includes_health_endpoint() -> None:
     schema = app.openapi()
 
     assert "/health" in schema["paths"]
+
+
+def test_production_requires_api_key() -> None:
+    with pytest.raises(RuntimeError, match="API_KEY is required"):
+        create_app(Settings(app_env="production", api_key=""))
 
 
 def test_api_key_protects_non_public_routes() -> None:
