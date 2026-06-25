@@ -2,7 +2,7 @@ from services.api.app.config import Settings
 from services.api.app.main import create_app
 
 
-def test_openapi_schema_supports_mvp_smoke_scenario() -> None:
+def test_openapi_schema_supports_mvp_route_sequence() -> None:
     app = create_app(Settings(app_env="test"))
 
     schema = app.openapi()
@@ -24,7 +24,7 @@ def test_openapi_schema_supports_mvp_smoke_scenario() -> None:
         assert method in paths[path]
 
 
-def test_openapi_schema_exposes_smoke_progress_fields() -> None:
+def test_openapi_schema_exposes_mvp_progress_fields() -> None:
     app = create_app(Settings(app_env="test"))
 
     schemas = app.openapi()["components"]["schemas"]
