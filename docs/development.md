@@ -5,7 +5,8 @@
 LinguaFoundry has a runnable Python baseline with a FastAPI API service,
 Telegram bot service, shared core package, language-pack examples, PostgreSQL
 models, and Alembic migrations. Python package metadata lives in
-`pyproject.toml`; there is no dependency lockfile yet.
+`pyproject.toml`, with reproducible development dependencies pinned in
+`requirements.lock`.
 
 ## Local Setup
 

@@ -70,6 +70,14 @@ def test_pytest_asyncio_fixture_loop_scope_is_explicit() -> None:
     assert config.get("pytest", "asyncio_default_fixture_loop_scope") == "function"
 
 
+def test_development_guide_documents_existing_dependency_lockfile() -> None:
+    development_guide = (REPOSITORY_ROOT / "docs/development.md").read_text()
+
+    assert (REPOSITORY_ROOT / "requirements.lock").exists()
+    assert "`requirements.lock`" in development_guide
+    assert "no dependency lockfile" not in development_guide
+
+
 def test_api_readme_documents_current_service_modules() -> None:
     api_readme = (REPOSITORY_ROOT / "services/api/README.md").read_text()
 
