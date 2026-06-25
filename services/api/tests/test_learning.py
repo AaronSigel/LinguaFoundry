@@ -4,6 +4,7 @@ from services.api.app.config import Settings
 from services.api.app.main import create_app
 from services.api.app.routers.learning import (
     _accuracy,
+    _expected_answer_text,
     _latest_datetime,
     _score_answer,
     _score_value,
@@ -22,6 +23,7 @@ def test_openapi_schema_includes_learning_endpoints() -> None:
     assert "/learning/sessions/{session_id}/answers" in schema["paths"]
     assert "/learning/users/{user_id}/progress" in schema["paths"]
     assert "/learning/users/{user_id}/progress/stats" in schema["paths"]
+    assert "/learning/users/{user_id}/review" in schema["paths"]
 
 
 def test_score_answer_accepts_normalized_answer_variants() -> None:
@@ -34,6 +36,14 @@ def test_score_answer_accepts_normalized_answer_variants() -> None:
 def test_score_answer_returns_none_without_answer_key() -> None:
     assert _score_answer("hola", None) is None
     assert _score_value(None) is None
+
+
+def test_expected_answer_text_uses_accepted_answers() -> None:
+    assert (
+        _expected_answer_text({"accepted_answers": ["hola", "buenas"]})
+        == "hola, buenas"
+    )
+    assert _expected_answer_text(None) == ""
 
 
 def test_progress_stats_helpers_handle_empty_and_latest_values() -> None:

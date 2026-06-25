@@ -4,13 +4,16 @@ Telegram-facing entrypoint for the Stage 1 MVP.
 
 ## Lesson Flow
 
-The bot supports a dependency-free Telegram polling flow:
+The bot supports the API-backed MVP Telegram flow:
 
-- `/start` or `/lessons` lists available lessons from the bundled example
-  language pack.
-- `/lesson <lesson-id>` starts a lesson and displays the first exercise.
-- Plain text messages are treated as answers, then the bot returns the result
-  and advances to the next exercise until the lesson is complete.
+- `/start` verifies API reachability.
+- `/lessons` lists published lessons from the backend API.
+- `/lesson <lesson-slug-or-id>` starts a lesson session through the API and
+  displays the first exercise.
+- Plain text messages are submitted as answers to the active API session, then
+  the bot returns the result and advances until the lesson is complete.
+- `/review`, `/mistakes`, and `/repeat_errors` show missed exercises from the
+  API review queue.
 
 Run locally after setting `TELEGRAM_BOT_TOKEN`:
 
@@ -26,9 +29,8 @@ PYTHONPATH=packages/core:. pytest services/bot/tests
 
 ## Review Command
 
-`services.bot.review` provides framework-agnostic handlers for the Telegram
-mistake review command. `/review`, `/mistakes`, and `/repeat_errors` render the
-learner's SRS-lite queue from `linguafoundry_core.review`.
+The Telegram adapter handles `/review`, `/mistakes`, and `/repeat_errors` by
+calling `/learning/users/{user_id}/review`.
 
 ## Progress Command
 

@@ -17,6 +17,7 @@ def test_openapi_schema_supports_mvp_smoke_scenario() -> None:
         ("post", "/learning/sessions/{session_id}/answers"),
         ("get", "/learning/users/{user_id}/progress"),
         ("get", "/learning/users/{user_id}/progress/stats"),
+        ("get", "/learning/users/{user_id}/review"),
     ]
 
     for method, path in expected_route_sequence:
@@ -41,3 +42,4 @@ def test_openapi_schema_exposes_smoke_progress_fields() -> None:
         "active_repetitions",
         "last_activity_at",
     }.issubset(schemas["ProgressStatsResponse"]["properties"])
+    assert {"user_id", "cards"}.issubset(schemas["ReviewQueueResponse"]["properties"])

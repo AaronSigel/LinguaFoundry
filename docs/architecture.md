@@ -37,8 +37,8 @@ attempts, and progress.
 
 1. A learner interacts with the Telegram bot.
 1. The bot registers or resolves the learner through the API.
-1. The bot requests lessons, starts sessions, submits answers, and fetches
-   progress through `/learning` endpoints.
+1. The bot requests lessons, starts sessions, submits answers, fetches review
+   cards, and fetches progress through `/learning` endpoints.
 1. The API persists learners, lesson state, attempts, and progress in
    PostgreSQL.
 1. Shared package code remains available for service behavior that should be
@@ -46,8 +46,8 @@ attempts, and progress.
 
 ## Boundaries
 
-- Bot orchestration should call reusable domain behavior from `packages/core`
-  instead of duplicating learning logic.
+- Bot orchestration should use `services/api` for learner state and avoid
+  duplicating persisted learning workflow logic.
 - Language-specific lessons, prompts, or metadata should live under
   `packages/lang-packs`.
 - API-specific database configuration, SQLAlchemy models, and migrations live
