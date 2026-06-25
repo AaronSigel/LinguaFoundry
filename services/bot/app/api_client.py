@@ -17,15 +17,24 @@ class ApiClientError(RuntimeError):
 class ApiClient:
     """Small HTTP client for backend API calls needed by bot handlers."""
 
-    def __init__(self, base_url: str) -> None:
+    def __init__(self, base_url: str, api_key: str = "") -> None:
         self.base_url = base_url.rstrip("/")
+        self.api_key = api_key
+
+    def _headers(self, content_type: str | None = None) -> dict[str, str]:
+        headers = {"Accept": "application/json"}
+        if content_type is not None:
+            headers["Content-Type"] = content_type
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        return headers
 
     def get_json(self, path: str) -> dict[str, Any]:
         """Return a JSON object from an API path."""
 
         request = Request(
             f"{self.base_url}/{path.lstrip('/')}",
-            headers={"Accept": "application/json"},
+            headers=self._headers(),
             method="GET",
         )
         try:
@@ -45,10 +54,7 @@ class ApiClient:
         request = Request(
             f"{self.base_url}/{path.lstrip('/')}",
             data=data,
-            headers={
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-            },
+            headers=self._headers("application/json"),
             method="POST",
         )
         try:
@@ -116,7 +122,7 @@ class ApiClient:
 
         request = Request(
             f"{self.base_url}/{path.lstrip('/')}",
-            headers={"Accept": "application/json"},
+            headers=self._headers(),
             method="GET",
         )
         try:

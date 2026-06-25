@@ -33,6 +33,12 @@ The repository now contains a runnable baseline application:
    python -m pip install -r requirements-dev.txt
    ```
 
+   For a reproducible toolchain, install from the committed lockfile instead:
+
+   ```shell
+   python -m pip install -r requirements.lock
+   ```
+
 1. Copy `.env.example` to `.env` for local configuration.
 
 1. Read `AGENTS.md` before making automated changes.
@@ -55,7 +61,12 @@ these variables:
 
 - `TELEGRAM_BOT_TOKEN`: Telegram Bot API token required by `services/bot`.
 - `API_BASE_URL`: host-side bot API URL for non-container runs.
+- `API_KEY`: optional shared API key. When set, API routes except health and
+  docs require `X-API-Key`; the bot sends the same value.
 - `TELEGRAM_POLL_TIMEOUT`: bot long-polling timeout in seconds.
+- `API_READY_TIMEOUT_SECONDS`: how long the bot waits for API readiness before
+  exiting.
+- `API_READY_INTERVAL_SECONDS`: delay between bot API readiness attempts.
 - `APP_ENV`: runtime environment name.
 - `LOG_LEVEL`: application log level.
 - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`: PostgreSQL container
@@ -68,25 +79,34 @@ these variables:
 - `SEED_LANG_PACK_PATHS`: space-separated language pack files or directories
   imported when `SEED_LANG_PACKS` is true.
 
-Start PostgreSQL, run API migrations, and launch the API and Telegram bot with:
+Build images, start PostgreSQL, run API migrations, import seed language packs,
+and launch the API and Telegram bot with:
 
 ```shell
-docker compose up
+docker compose up --build
 ```
 
 Run only PostgreSQL and the API when a Telegram token is not available:
 
 ```shell
-docker compose up db api
+docker compose up --build db api
 ```
 
 The API is available at `http://localhost:8000`, and PostgreSQL is available on
-`localhost:5432` by default.
+`localhost:5432` by default. The API container exposes a Compose health check
+against `/health`; the bot waits for that endpoint before starting Telegram
+polling.
 
 Check API readiness with:
 
 ```shell
 curl http://localhost:8000/health
+```
+
+When `API_KEY` is set, pass it to protected API routes:
+
+```shell
+curl -H "X-API-Key: $API_KEY" http://localhost:8000/learning/lessons
 ```
 
 Install API database dependencies and run migrations with:

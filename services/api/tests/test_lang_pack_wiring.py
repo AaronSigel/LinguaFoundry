@@ -33,6 +33,7 @@ def test_language_pack_cli_check_validates_without_import(monkeypatch, capsys) -
 
 def test_docker_compose_api_seed_command_is_configurable() -> None:
     compose = (REPOSITORY_ROOT / "docker-compose.yml").read_text()
+    dockerfile = (REPOSITORY_ROOT / "services/api/Dockerfile").read_text()
 
     assert "SEED_LANG_PACKS: ${SEED_LANG_PACKS:-true}" in compose
     assert (
@@ -40,6 +41,6 @@ def test_docker_compose_api_seed_command_is_configurable() -> None:
         in compose
     )
     assert (
-        'if [ \\"$${SEED_LANG_PACKS}\\" = \\"true\\" ]; then '
-        "linguafoundry-lang-packs $${SEED_LANG_PACK_PATHS}; fi"
-    ) in compose
+        'if [ \\"$SEED_LANG_PACKS\\" = \\"true\\" ]; then '
+        "linguafoundry-lang-packs $SEED_LANG_PACK_PATHS; fi"
+    ) in dockerfile

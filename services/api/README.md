@@ -10,6 +10,8 @@ Configuration is read from environment variables:
 - `DATABASE_URL`: PostgreSQL connection URL, using the
   `postgresql+asyncpg://` driver form.
 - `DATABASE_ECHO`: set to `true` to log SQL statements locally.
+- `API_KEY`: optional shared API key. When set, all routes except `/health`,
+  `/docs`, `/redoc`, and `/openapi.json` require `X-API-Key`.
 
 Install API dependencies from the repository root:
 
@@ -64,7 +66,8 @@ Install development dependencies, then run the ASGI app:
 python -m uvicorn services.api.app.main:app --reload
 ```
 
-The health endpoint is available at `GET /health`.
+The health endpoint is available at `GET /health` and is intentionally public
+for container health checks.
 
 Learning workflow endpoints are available under `/learning`:
 
@@ -80,6 +83,12 @@ Learning workflow endpoints are available under `/learning`:
   statistics.
 - `GET /learning/users/{user_id}/review`: fetch active missed exercises for
   mistake review.
+
+When `API_KEY` is configured, call these endpoints with:
+
+```sh
+curl -H "X-API-Key: $API_KEY" http://localhost:8000/learning/lessons
+```
 
 Learning sessions are durable rows with the active exercise cursor and language
 pack version used for the session. Progress rows remain aggregate per-lesson
