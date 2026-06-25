@@ -62,6 +62,23 @@ def test_legacy_api_core_package_is_not_referenced() -> None:
     assert legacy_references == []
 
 
+def test_api_readme_documents_current_service_modules() -> None:
+    api_readme = (REPOSITORY_ROOT / "services/api/README.md").read_text()
+
+    expected_entries = {
+        "- `app/db`:": REPOSITORY_ROOT / "services/api/app/db",
+        "- `app/lang_packs.py`:": REPOSITORY_ROOT / "services/api/app/lang_packs.py",
+        "- `app/logging.py`:": REPOSITORY_ROOT / "services/api/app/logging.py",
+    }
+
+    for entry, path in expected_entries.items():
+        assert entry in api_readme
+        assert path.exists()
+
+    assert "app/dependencies.py" not in api_readme
+    assert not (REPOSITORY_ROOT / "services/api/app/dependencies.py").exists()
+
+
 def test_ci_markdown_formatting_ignores_tool_cache_readmes(tmp_path: Path) -> None:
     workflow = (REPOSITORY_ROOT / ".github/workflows/ci.yml").read_text()
     find_start = workflow.index("find . -path ./.git -prune -o \\")
