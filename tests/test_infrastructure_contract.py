@@ -1,5 +1,6 @@
 import shlex
 import subprocess
+from configparser import ConfigParser
 from pathlib import Path
 
 
@@ -60,6 +61,13 @@ def test_legacy_api_core_package_is_not_referenced() -> None:
                 legacy_references.append(path.relative_to(REPOSITORY_ROOT).as_posix())
 
     assert legacy_references == []
+
+
+def test_pytest_asyncio_fixture_loop_scope_is_explicit() -> None:
+    config = ConfigParser()
+    config.read(REPOSITORY_ROOT / "pytest.ini")
+
+    assert config.get("pytest", "asyncio_default_fixture_loop_scope") == "function"
 
 
 def test_api_readme_documents_current_service_modules() -> None:
