@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import Annotated, TypeVar
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -157,7 +157,7 @@ class ReviewCardResponse(BaseModel):
 
 
 class ReviewQueueResponse(BaseModel):
-    """Due mistake review queue for a learner."""
+    """Mistake review queue for a learner."""
 
     user_id: UUID
     cards: list[ReviewCardResponse]
@@ -482,7 +482,6 @@ async def get_progress_stats(
         select(func.count(ReviewState.id)).where(
             ReviewState.user_id == user_id,
             ReviewState.status == "active",
-            ReviewState.due_at <= datetime.now(UTC),
         )
     )
     last_session_at = await session.scalar(
@@ -546,16 +545,11 @@ async def get_active_sessions(
 async def get_review_queue(
     user_id: UUID,
     session: Annotated[AsyncSession, Depends(get_session)],
-    limit: int = 5,
+    limit: Annotated[int, Query(ge=1, le=50)] = 5,
 ) -> ReviewQueueResponse:
-    """Return durable review states whose exercises are due."""
+    """Return active missed exercises for mistake review."""
 
     await _get_user(session, user_id)
-    if limit < 1:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="limit must be positive.",
-        )
 
     statement = (
         select(ReviewState, Exercise)
@@ -563,7 +557,6 @@ async def get_review_queue(
         .where(
             ReviewState.user_id == user_id,
             ReviewState.status == "active",
-            ReviewState.due_at <= datetime.now(UTC),
         )
         .order_by(ReviewState.due_at, ReviewState.updated_at, ReviewState.id)
         .limit(limit)
