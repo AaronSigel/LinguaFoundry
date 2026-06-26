@@ -4,6 +4,7 @@ import asyncio
 import os
 from collections.abc import AsyncIterator
 from pathlib import Path
+from urllib.request import Request
 from uuid import UUID
 
 import httpx
@@ -13,18 +14,24 @@ from alembic.config import Config
 from sqlalchemy import func, select, text
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from services.api.app.config import Settings, get_settings
 from services.api.app.db.database import get_session
 from services.api.app.db.models import (
     Attempt,
+    Exercise,
     LearningSession,
     Lesson,
     Progress,
     ReviewState,
+    User,
 )
 from services.api.app.lang_packs import import_language_pack, load_language_pack
 from services.api.app.main import create_app
+from services.bot.app import api_client as bot_api_client_module
+from services.bot.app.adapter import TelegramBotAdapter
+from services.bot.app.api_client import ApiClient
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 LANG_PACK_PATH = REPOSITORY_ROOT / "packages/lang-packs/examples/es-a1-greetings.json"
@@ -69,6 +76,70 @@ def test_mvp_learning_workflow_persists_across_application_restart(monkeypatch) 
     try:
         asyncio.run(_run_mvp_learning_workflow(database_url))
     finally:
+        command.downgrade(alembic_config, "base")
+        get_settings.cache_clear()
+
+
+def test_telegram_update_to_postgresql_to_telegram_response(monkeypatch) -> None:
+    database_url = os.getenv("TEST_DATABASE_URL")
+    if database_url is None:
+        pytest.skip("TEST_DATABASE_URL is required for PostgreSQL integration tests.")
+
+    _require_test_database_url(database_url)
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    get_settings.cache_clear()
+    alembic_config = Config(str(REPOSITORY_ROOT / "services/api/alembic.ini"))
+    command.downgrade(alembic_config, "base")
+    command.upgrade(alembic_config, "head")
+
+    try:
+        asyncio.run(_seed_integration_language_pack(database_url))
+
+        app = create_app(Settings(app_env="test"))
+        engine = create_async_engine(database_url, poolclass=NullPool)
+        session_factory = async_sessionmaker(
+            bind=engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
+        )
+        _override_database_session(app, session_factory)
+        monkeypatch.setattr(bot_api_client_module, "urlopen", _ASGIUrlopen(app))
+
+        telegram_client = _RecordingTelegramClient()
+        bot = TelegramBotAdapter(
+            telegram_client=telegram_client,
+            api_client=ApiClient("http://testserver"),
+        )
+
+        assert bot.process_update(_telegram_text_update("/lesson hello-and-goodbye"))
+        assert bot.process_update(_telegram_text_update("1"))
+        assert bot.process_update(_telegram_text_update("__wrong_bot_answer__"))
+
+        assert telegram_client.sent_messages == [
+            (
+                2001,
+                "Lesson started: Hello and Goodbye\n\n"
+                "Exercise 1/2\n"
+                "Which word means hello?\n"
+                "Options:\n"
+                "1. hola\n"
+                "2. adios",
+            ),
+            (
+                2001,
+                "Correct.\n\nExercise 2/2\nTranslate: goodbye",
+            ),
+            (
+                2001,
+                "Incorrect.\n\n"
+                "Lesson complete: 2/2 exercises answered.\n"
+                "Use /lessons to choose another lesson.",
+            ),
+        ]
+        asyncio.run(_assert_telegram_workflow_persisted(engine))
+    finally:
+        if "engine" in locals():
+            asyncio.run(engine.dispose())
         command.downgrade(alembic_config, "base")
         get_settings.cache_clear()
 
@@ -342,6 +413,64 @@ async def _run_mvp_learning_workflow(database_url: str) -> None:
         await engine.dispose()
 
 
+async def _seed_integration_language_pack(database_url: str) -> None:
+    engine = create_async_engine(database_url, poolclass=NullPool)
+    session_factory = async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    try:
+        async with session_factory() as session:
+            stats = await import_language_pack(
+                session, load_language_pack(LANG_PACK_PATH)
+            )
+        assert stats.packs == 1
+        assert stats.lessons_created == 1
+        assert stats.exercises_created == 2
+    finally:
+        await engine.dispose()
+
+
+async def _assert_telegram_workflow_persisted(engine) -> None:
+    session_factory = async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    async with session_factory() as session:
+        attempts = (
+            (
+                await session.execute(
+                    select(Attempt).join(Exercise).order_by(Exercise.position)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        user = await session.scalar(select(User))
+        persisted_session = await session.scalar(select(LearningSession))
+        progress = await session.scalar(select(Progress))
+        review_state = await session.scalar(select(ReviewState))
+
+    assert user is not None
+    assert user.telegram_id == 1001
+    assert [attempt.answer for attempt in attempts] == [
+        {"answer": "hola"},
+        {"answer": "__wrong_bot_answer__"},
+    ]
+    assert [attempt.is_correct for attempt in attempts] == [True, False]
+    assert persisted_session is not None
+    assert persisted_session.status == "completed"
+    assert persisted_session.current_exercise_index == 2
+    assert progress is not None
+    assert progress.status == "completed"
+    assert progress.completed_exercises == 2
+    assert review_state is not None
+    assert review_state.status == "active"
+    assert review_state.incorrect_count == 1
+
+
 def _override_database_session(app, session_factory) -> None:
     async def override_get_session() -> AsyncIterator[AsyncSession]:
         async with session_factory() as session:
@@ -353,6 +482,70 @@ def _override_database_session(app, session_factory) -> None:
 def _client_for(app) -> httpx.AsyncClient:
     transport = httpx.ASGITransport(app=app)
     return httpx.AsyncClient(transport=transport, base_url="http://testserver")
+
+
+def _telegram_text_update(text: str) -> dict[str, object]:
+    return {
+        "update_id": 3001,
+        "message": {
+            "message_id": 4001,
+            "from": {"id": 1001, "is_bot": False, "first_name": "Integration"},
+            "chat": {"id": 2001, "type": "private"},
+            "date": 1782441600,
+            "text": text,
+        },
+    }
+
+
+class _RecordingTelegramClient:
+    def __init__(self) -> None:
+        self.sent_messages: list[tuple[int, str]] = []
+
+    def send_message(self, chat_id: int, text: str) -> None:
+        self.sent_messages.append((chat_id, text))
+
+
+class _ASGIResponse:
+    def __init__(self, content: bytes) -> None:
+        self._content = content
+
+    def __enter__(self) -> "_ASGIResponse":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+    def read(self) -> bytes:
+        return self._content
+
+
+class _ASGIUrlopen:
+    def __init__(self, app) -> None:
+        self.app = app
+
+    def __call__(self, request: Request, timeout: int) -> _ASGIResponse:
+        del timeout
+        response = asyncio.run(self._request(request))
+        if response.status_code >= 400:
+            raise AssertionError(
+                f"API request failed: {request.get_method()} "
+                f"{request.full_url} returned {response.status_code} "
+                f"{response.text}"
+            )
+        return _ASGIResponse(response.content)
+
+    async def _request(self, request: Request) -> httpx.Response:
+        transport = httpx.ASGITransport(app=self.app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.request(
+                request.get_method(),
+                request.full_url,
+                content=request.data,
+                headers=dict(request.header_items()),
+            )
 
 
 async def _assert_pack_version_database_columns_are_wide(
