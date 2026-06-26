@@ -53,6 +53,7 @@ def test_api_client_uses_learning_workflow_endpoints(
             {"exercise": {"prompt": "Translate: hello"}},
             {"is_correct": True},
             {"answer_count": 1},
+            [{"session_id": "session-1"}],
             {"cards": []},
         ]
     )
@@ -69,6 +70,7 @@ def test_api_client_uses_learning_workflow_endpoints(
     }
     assert client.submit_answer("session-1", "bonjour") == {"is_correct": True}
     assert client.progress_stats("user-1") == {"answer_count": 1}
+    assert client.active_sessions("user-1") == [{"session_id": "session-1"}]
     assert client.review_queue("user-1") == {"cards": []}
 
     assert [request.get_method() for request in recorder.requests] == [
@@ -79,6 +81,7 @@ def test_api_client_uses_learning_workflow_endpoints(
         "POST",
         "GET",
         "GET",
+        "GET",
     ]
     assert [request.full_url for request in recorder.requests] == [
         "https://api.example.test/learning/users",
@@ -87,6 +90,7 @@ def test_api_client_uses_learning_workflow_endpoints(
         "https://api.example.test/learning/sessions/session-1/exercise",
         "https://api.example.test/learning/sessions/session-1/answers",
         "https://api.example.test/learning/users/user-1/progress/stats",
+        "https://api.example.test/learning/users/user-1/sessions/active",
         "https://api.example.test/learning/users/user-1/review",
     ]
     assert _json_body(recorder.requests[0]) == {"telegram_id": 123}
@@ -95,7 +99,7 @@ def test_api_client_uses_learning_workflow_endpoints(
         "lesson_id": "lesson-1",
     }
     assert _json_body(recorder.requests[4]) == {"answer": "bonjour"}
-    assert recorder.timeouts == [10, 10, 10, 10, 10, 10, 10]
+    assert recorder.timeouts == [10, 10, 10, 10, 10, 10, 10, 10]
 
 
 def test_api_client_sends_configured_api_key(

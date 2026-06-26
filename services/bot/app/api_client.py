@@ -82,6 +82,11 @@ class ApiClient:
 
         return self.get_json(f"/learning/users/{user_id}/progress/stats")
 
+    def active_sessions(self, user_id: str) -> list[dict[str, Any]]:
+        """Return active learning sessions for a learner."""
+
+        return self.get_json_list(f"/learning/users/{user_id}/sessions/active")
+
     def list_lessons(self, language_code: str | None = None) -> list[dict[str, Any]]:
         """Return published lessons available for Telegram learners."""
 
