@@ -17,6 +17,10 @@ from linguafoundry_core.learning import (
     SessionState,
     SessionStatus,
     calculate_review_due_at,
+    check_answer,
+    expected_answer_text,
+    extract_accepted_answers,
+    normalize_answer,
 )
 from linguafoundry_core.models import (
     Attempt,
@@ -71,4 +75,8 @@ __all__ = [
     "calculate_review_due_at",
     "UserProgressStats",
     "calculate_user_progress_stats",
+    "check_answer",
+    "expected_answer_text",
+    "extract_accepted_answers",
+    "normalize_answer",
 ]

@@ -19,6 +19,8 @@ practice. Callers can run due items through a separate review workflow with
 `submit_review_answer`. Review answers advance the review session and recalculate
 the item's next `due_at` timestamp. Review dates are calculated by
 `calculate_review_due_at` with simple 1, 3, 7, and 14 day intervals.
+Answer checking is shared through `check_answer`, `extract_accepted_answers`,
+`expected_answer_text`, and `normalize_answer`.
 
 The initial implementation uses plain dataclasses and an in-memory store so
 service layers can adapt it to bot, API, or durable persistence concerns later.
@@ -47,6 +49,11 @@ The `linguafoundry_core` package exposes the base learning domain model:
 - `ReviewStatus`
 - `UserProgressStats`
 - `calculate_user_progress_stats`
+- `calculate_review_due_at`
+- `check_answer`
+- `extract_accepted_answers`
+- `expected_answer_text`
+- `normalize_answer`
 - `CompletionStatus`
 
 ## Verification

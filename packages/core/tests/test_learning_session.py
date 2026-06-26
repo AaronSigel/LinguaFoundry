@@ -10,6 +10,9 @@ from linguafoundry_core.learning import (
     SessionNotFoundError,
     SessionStatus,
     calculate_review_due_at,
+    check_answer,
+    expected_answer_text,
+    extract_accepted_answers,
 )
 
 
@@ -169,6 +172,26 @@ def test_review_due_date_uses_srs_lite_intervals() -> None:
     assert calculate_review_due_at(FROZEN_NOW, incorrect_count=99) == (
         FROZEN_NOW + timedelta(days=14)
     )
+
+
+def test_check_answer_accepts_normalized_answer_payload_variants() -> None:
+    answer_payload = {"accepted_answers": ["Buenos dias", "Buen dia"]}
+
+    assert check_answer("  buenos   DIAS ", answer_payload) is True
+    assert check_answer("hola", answer_payload) is False
+
+
+def test_check_answer_returns_none_without_accepted_answers() -> None:
+    assert check_answer("hola", None) is None
+    assert check_answer("hola", {}) is None
+
+
+def test_answer_helpers_extract_and_format_answers() -> None:
+    answer_payload = {"accepted_answers": ["hola", "buenas"]}
+
+    assert extract_accepted_answers(answer_payload) == ("hola", "buenas")
+    assert expected_answer_text(answer_payload) == "hola, buenas"
+    assert expected_answer_text(None) == ""
 
 
 def test_review_session_delivers_due_exercise_and_reschedules_correct_answer() -> None:
