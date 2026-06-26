@@ -4,6 +4,50 @@ from services.bot.app.adapter import TelegramBotAdapter
 from services.bot.app.api_client import ApiClientError
 
 
+SUPPORTED_EXERCISE_KIND_CASES = [
+    (
+        "flashcard",
+        "learner answer",
+        "learner answer",
+        "Exercise 1/1\nComplete the flashcard exercise.",
+    ),
+    (
+        "multiple_choice",
+        "1",
+        "hello",
+        "Exercise 1/1\n"
+        "Complete the multiple_choice exercise.\n"
+        "Options:\n"
+        "1. hello - hola\n"
+        "2. goodbye - adios",
+    ),
+    (
+        "text_input",
+        "learner answer",
+        "learner answer",
+        "Exercise 1/1\nComplete the text_input exercise.",
+    ),
+    (
+        "translation",
+        "learner answer",
+        "learner answer",
+        "Exercise 1/1\nComplete the translation exercise.",
+    ),
+    (
+        "listening",
+        "learner answer",
+        "learner answer",
+        "Exercise 1/1\nComplete the listening exercise.",
+    ),
+    (
+        "ordering",
+        "learner answer",
+        "learner answer",
+        "Exercise 1/1\nComplete the ordering exercise.",
+    ),
+]
+
+
 class RecordingTelegramClient:
     def __init__(self) -> None:
         self.sent_messages: list[tuple[int, str]] = []
@@ -207,6 +251,75 @@ class FollowUpMultipleChoiceApiClient(HealthyApiClient):
         }
 
 
+class SupportedExerciseTypeApiClient(HealthyApiClient):
+    def __init__(self, exercise_kind: str) -> None:
+        super().__init__()
+        self.exercise_kind = exercise_kind
+
+    def list_lessons(self) -> list[dict[str, object]]:
+        return [
+            {
+                "id": "lesson-1",
+                "slug": "intro",
+                "title": "Intro",
+                "exercise_count": 1,
+            }
+        ]
+
+    def start_session(self, user_id: str, lesson_id: str) -> dict[str, object]:
+        assert user_id == "user-456"
+        assert lesson_id == "lesson-1"
+        self.started_sessions.append((user_id, lesson_id))
+        return {
+            "session_id": "session-1",
+            "user_id": user_id,
+            "lesson_id": lesson_id,
+            "status": "in_progress",
+            "completed_exercises": 0,
+            "total_exercises": 1,
+        }
+
+    def current_exercise(self, session_id: str) -> dict[str, object]:
+        assert session_id == "session-1"
+        payload: dict[str, object] = {}
+        if self.exercise_kind == "multiple_choice":
+            payload = {
+                "options": [
+                    {"id": "hello", "text": "hola"},
+                    {"id": "goodbye", "text": "adios"},
+                ]
+            }
+        return {
+            "session_id": session_id,
+            "status": "in_progress",
+            "exercise": {
+                "id": "exercise-1",
+                "slug": f"{self.exercise_kind}-hello",
+                "kind": self.exercise_kind,
+                "prompt": f"Complete the {self.exercise_kind} exercise.",
+                "payload": payload,
+                "position": 1,
+            },
+        }
+
+    def submit_answer(self, session_id: str, answer: str) -> dict[str, object]:
+        self.answers.append((session_id, answer))
+        return {
+            "attempt_id": "attempt-1",
+            "exercise_id": "exercise-1",
+            "is_correct": True,
+            "session_completed": True,
+            "progress": {
+                "session_id": session_id,
+                "user_id": "user-456",
+                "lesson_id": "lesson-1",
+                "status": "completed",
+                "completed_exercises": 1,
+                "total_exercises": 1,
+            },
+        }
+
+
 def test_start_command_sends_welcome_message() -> None:
     telegram = RecordingTelegramClient()
     bot = TelegramBotAdapter(telegram, HealthyApiClient())
@@ -288,6 +401,44 @@ def test_lesson_command_starts_api_session_and_text_answers_advance() -> None:
     assert api_client.registered_telegram_ids == [456]
     assert api_client.started_sessions == [("user-456", "lesson-1")]
     assert api_client.answers == [("session-1", "hola"), ("session-1", "wrong")]
+
+
+@pytest.mark.parametrize(
+    ("exercise_kind", "answer", "expected_submitted_answer", "expected_prompt"),
+    SUPPORTED_EXERCISE_KIND_CASES,
+)
+def test_supported_exercise_types_can_be_started_and_answered(
+    exercise_kind: str,
+    answer: str,
+    expected_submitted_answer: str,
+    expected_prompt: str,
+) -> None:
+    telegram = RecordingTelegramClient()
+    api_client = SupportedExerciseTypeApiClient(exercise_kind)
+    bot = TelegramBotAdapter(telegram, api_client)
+
+    bot.process_update(
+        {
+            "message": {
+                "chat": {"id": 123},
+                "from": {"id": 456},
+                "text": "/lesson intro",
+            }
+        }
+    )
+    handled = bot.process_update({"message": {"chat": {"id": 123}, "text": answer}})
+
+    assert handled is True
+    assert telegram.sent_messages == [
+        (123, f"Lesson started: Intro\n\n{expected_prompt}"),
+        (
+            123,
+            "Correct.\n\n"
+            "Lesson complete: 1/1 exercises answered.\n"
+            "Use /lessons to choose another lesson.",
+        ),
+    ]
+    assert api_client.answers == [("session-1", expected_submitted_answer)]
 
 
 def test_lesson_command_renders_multiple_choice_options() -> None:
