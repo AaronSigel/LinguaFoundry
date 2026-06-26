@@ -192,7 +192,9 @@ def handle_text_answer(message: IncomingMessage, context: BotContext) -> str:
         return "Choose a lesson before sending an answer.\n\n" + lesson_list
 
     try:
-        result = context.api_client.submit_answer(session_id, message.text.strip())
+        exercise_payload = context.api_client.current_exercise(session_id)
+        answer = _normalize_answer_for_exercise(message.text.strip(), exercise_payload)
+        result = context.api_client.submit_answer(session_id, answer)
         progress = result.get("progress")
         exercise_payload = (
             {}
@@ -339,6 +341,47 @@ def _format_multiple_choice_options(exercise: dict[str, Any]) -> list[str]:
         lines.append(f"{index}. {label}")
 
     return lines if len(lines) > 1 else []
+
+
+def _normalize_answer_for_exercise(
+    answer: str,
+    exercise_payload: dict[str, Any],
+) -> str:
+    exercise = exercise_payload.get("exercise")
+    if not isinstance(exercise, dict) or exercise.get("kind") != "multiple_choice":
+        return answer
+
+    payload = exercise.get("payload")
+    if not isinstance(payload, dict):
+        return answer
+
+    options = payload.get("options")
+    if not isinstance(options, list):
+        return answer
+
+    normalized_answer = answer.strip().casefold()
+    if normalized_answer.isdecimal() and len(normalized_answer) <= len(
+        str(len(options))
+    ):
+        selected_index = int(normalized_answer) - 1
+        if 0 <= selected_index < len(options):
+            option = options[selected_index]
+            if isinstance(option, dict):
+                option_id = option.get("id")
+                if isinstance(option_id, str) and option_id.strip():
+                    return option_id
+
+    for option in options:
+        if not isinstance(option, dict):
+            continue
+        option_id = option.get("id")
+        option_text = option.get("text")
+        if not isinstance(option_id, str) or not isinstance(option_text, str):
+            continue
+        if option_text.strip().casefold() == normalized_answer and option_id.strip():
+            return option_id
+
+    return answer
 
 
 def _format_answer_result(result: dict[str, Any]) -> str:
