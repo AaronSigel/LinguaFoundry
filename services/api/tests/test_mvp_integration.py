@@ -35,6 +35,7 @@ from services.bot.app.api_client import ApiClient
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 LANG_PACK_PATH = REPOSITORY_ROOT / "packages/lang-packs/examples/es-a1-greetings.json"
+IMPORTED_LESSON_SLUG = "es-a1-greetings-a1-greetings-hello-and-goodbye"
 
 
 pytestmark = pytest.mark.integration
@@ -111,15 +112,23 @@ def test_telegram_update_to_postgresql_to_telegram_response(monkeypatch) -> None
             api_client=ApiClient("http://testserver"),
         )
 
+        assert bot.process_update(_telegram_text_update("/lessons"))
+        assert telegram_client.sent_messages[0] == (
+            2001,
+            "Choose a lesson:\n"
+            f"/lesson {IMPORTED_LESSON_SLUG} - Hello and Goodbye (2 exercises)",
+        )
+        advertised_lesson_slug = (
+            telegram_client.sent_messages[0][1].splitlines()[1].split()[1]
+        )
+
         assert bot.process_update(
-            _telegram_text_update(
-                "/lesson es-a1-greetings-a1-greetings-hello-and-goodbye"
-            )
+            _telegram_text_update(f"/lesson {advertised_lesson_slug}")
         )
         assert bot.process_update(_telegram_text_update("1"))
         assert bot.process_update(_telegram_text_update("__wrong_bot_answer__"))
 
-        assert telegram_client.sent_messages[0] == (
+        assert telegram_client.sent_messages[1] == (
             2001,
             "Lesson started: Hello and Goodbye\n\n"
             "Exercise 1/2\n"
@@ -128,11 +137,11 @@ def test_telegram_update_to_postgresql_to_telegram_response(monkeypatch) -> None
             "1. hola\n"
             "2. adios",
         )
-        assert telegram_client.sent_messages[1] == (
+        assert telegram_client.sent_messages[2] == (
             2001,
             "Correct.\n\nExercise 2/2\nTranslate: goodbye",
         )
-        assert telegram_client.sent_messages[2] == (
+        assert telegram_client.sent_messages[3] == (
             2001,
             "Incorrect.\n\n"
             "Lesson complete: 2/2 exercises answered.\n"
@@ -474,7 +483,7 @@ async def _assert_telegram_workflow_persisted(engine) -> None:
     assert user.telegram_id == 1001
     assert user_count == 1
     assert lesson is not None
-    assert lesson.slug == "es-a1-greetings-a1-greetings-hello-and-goodbye"
+    assert lesson.slug == IMPORTED_LESSON_SLUG
     assert lesson.language_code == "es"
     assert [exercise.slug for exercise in exercises] == [
         "choose-hello",
