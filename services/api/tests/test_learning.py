@@ -3,6 +3,8 @@ import uuid
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from services.api.app.config import Settings
 from services.api.app.db.models import (
     Attempt,
@@ -14,14 +16,17 @@ from services.api.app.db.models import (
     User,
 )
 from services.api.app.main import create_app
+from services.api.app.routers import learning as learning_router
 from services.api.app.routers.learning import (
     StartSessionRequest,
     SubmitAnswerRequest,
     _accuracy,
     _expected_answer_text,
     _latest_datetime,
+    _review_due_at,
     _score_answer,
     _score_value,
+    _update_review_state,
     get_progress_stats,
     get_review_queue,
     start_session,
@@ -110,6 +115,22 @@ def test_score_answer_accepts_normalized_answer_variants() -> None:
     assert _score_answer("hola", expected_answer) is False
 
 
+def test_score_answer_delegates_to_core_checker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected_answer = {"accepted_answers": ["hola"]}
+    calls: list[tuple[str, object]] = []
+
+    def fake_check_answer(submitted_answer: str, accepted_answers: object) -> bool:
+        calls.append((submitted_answer, accepted_answers))
+        return True
+
+    monkeypatch.setattr(learning_router, "check_answer", fake_check_answer)
+
+    assert _score_answer(" HOLA ", expected_answer) is True
+    assert calls == [(" HOLA ", expected_answer)]
+
+
 def test_score_answer_returns_none_without_answer_key() -> None:
     assert _score_answer("hola", None) is None
     assert _score_value(None) is None
@@ -121,6 +142,30 @@ def test_expected_answer_text_uses_accepted_answers() -> None:
         == "hola, buenas"
     )
     assert _expected_answer_text(None) == ""
+
+
+def test_review_due_at_delegates_to_core_scheduler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = datetime(2026, 1, 2, 10, 30, tzinfo=timezone.utc)
+    due_at = now + timedelta(days=9)
+    calls: list[tuple[datetime, int]] = []
+
+    def fake_calculate_review_due_at(
+        reviewed_at: datetime,
+        incorrect_count: int = 1,
+    ) -> datetime:
+        calls.append((reviewed_at, incorrect_count))
+        return due_at
+
+    monkeypatch.setattr(
+        learning_router,
+        "calculate_review_due_at",
+        fake_calculate_review_due_at,
+    )
+
+    assert _review_due_at(now, incorrect_count=3) == due_at
+    assert calls == [(now, 3)]
 
 
 def test_progress_stats_helpers_handle_empty_and_latest_values() -> None:
@@ -202,7 +247,9 @@ def test_start_session_reuses_active_pack_version_cursor() -> None:
     assert active_session in db_session.refreshed
 
 
-def test_submit_answer_persists_attempt_and_review_state_with_pack_version() -> None:
+def test_submit_answer_persists_attempt_and_review_state_with_core_interval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     user_id = uuid.uuid4()
     lesson_id = uuid.uuid4()
     exercise_id = uuid.uuid4()
@@ -232,6 +279,21 @@ def test_submit_answer_persists_attempt_and_review_state_with_pack_version() -> 
         status="in_progress",
         completed_exercises=0,
         total_exercises=2,
+    )
+    due_at = datetime(2026, 1, 9, 10, 30, tzinfo=timezone.utc)
+    calls: list[tuple[datetime, int]] = []
+
+    def fake_calculate_review_due_at(
+        reviewed_at: datetime,
+        incorrect_count: int = 1,
+    ) -> datetime:
+        calls.append((reviewed_at, incorrect_count))
+        return due_at
+
+    monkeypatch.setattr(
+        learning_router,
+        "calculate_review_due_at",
+        fake_calculate_review_due_at,
     )
     db_session = _QueuedAsyncSession(
         execute_scalars=(learning_session, exercise, progress, None),
@@ -269,11 +331,99 @@ def test_submit_answer_persists_attempt_and_review_state_with_pack_version() -> 
     assert review_state.language_pack_id == "es-a1-greetings"
     assert review_state.language_pack_version == "1.0"
     assert review_state.last_attempt_id == attempt.id
-    assert review_state.due_at > learning_session.last_seen_at
+    assert review_state.due_at == due_at
+    assert calls == [(learning_session.last_seen_at, 1)]
     assert learning_session.current_exercise_index == 1
     assert progress.completed_exercises == 1
     assert db_session.flushes == 1
     assert db_session.commits == 1
+
+
+def test_update_review_state_reschedules_existing_mistake_with_core_interval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user_id = uuid.uuid4()
+    lesson_id = uuid.uuid4()
+    exercise_id = uuid.uuid4()
+    session_id = uuid.uuid4()
+    attempt_id = uuid.uuid4()
+    now = datetime(2026, 1, 2, 10, 30, tzinfo=timezone.utc)
+    due_at = now + timedelta(days=11)
+    learning_session = LearningSession(
+        id=session_id,
+        user_id=user_id,
+        lesson_id=lesson_id,
+        language_pack_id="es-a1-greetings",
+        language_pack_version="1.0",
+        current_exercise_index=1,
+        status="in_progress",
+    )
+    exercise = Exercise(
+        id=exercise_id,
+        lesson_id=lesson_id,
+        slug="translate-goodbye",
+        kind="text_input",
+        prompt="Translate: goodbye",
+        payload={},
+        answer={"accepted_answers": ["adios"]},
+        position=1,
+    )
+    attempt = Attempt(
+        id=attempt_id,
+        user_id=user_id,
+        exercise_id=exercise_id,
+        learning_session_id=session_id,
+        language_pack_id="es-a1-greetings",
+        language_pack_version="1.0",
+        answer={"answer": "ciao"},
+        is_correct=False,
+    )
+    review_state = ReviewState(
+        user_id=user_id,
+        lesson_id=lesson_id,
+        exercise_id=exercise_id,
+        learning_session_id=session_id,
+        language_pack_id="es-a1-greetings",
+        language_pack_version="1.0",
+        status="mastered",
+        incorrect_count=1,
+        due_at=now,
+        last_attempt_id=uuid.uuid4(),
+    )
+    calls: list[tuple[datetime, int]] = []
+
+    def fake_calculate_review_due_at(
+        reviewed_at: datetime,
+        incorrect_count: int = 1,
+    ) -> datetime:
+        calls.append((reviewed_at, incorrect_count))
+        return due_at
+
+    monkeypatch.setattr(
+        learning_router,
+        "calculate_review_due_at",
+        fake_calculate_review_due_at,
+    )
+    db_session = _QueuedAsyncSession(execute_scalars=(review_state,))
+
+    asyncio.run(
+        _update_review_state(
+            db_session,
+            learning_session=learning_session,
+            exercise=exercise,
+            attempt=attempt,
+            is_correct=False,
+            now=now,
+        )
+    )
+
+    assert calls == [(now, 2)]
+    assert review_state.status == "active"
+    assert review_state.incorrect_count == 2
+    assert review_state.due_at == due_at
+    assert review_state.last_attempt_id == attempt_id
+    assert review_state.learning_session_id == session_id
+    assert db_session.added == []
 
 
 def test_review_queue_returns_due_active_mistakes_only() -> None:

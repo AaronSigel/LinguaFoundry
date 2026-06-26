@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Annotated, TypeVar
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from linguafoundry_core import (
+    calculate_review_due_at,
+    check_answer,
+    expected_answer_text,
+    extract_accepted_answers,
+    normalize_answer,
+)
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,8 +29,6 @@ from services.api.app.db.models import (
     ReviewState,
     User,
 )
-
-REVIEW_INTERVAL_DAYS = (1, 3, 7, 14)
 
 router = APIRouter(prefix="/learning", tags=["learning"])
 ModelT = TypeVar("ModelT")
@@ -710,7 +715,7 @@ async def _update_review_state(
             learning_session_id=learning_session.id,
             language_pack_id=learning_session.language_pack_id,
             language_pack_version=learning_session.language_pack_version,
-            due_at=_review_due_at(now, incorrect_count=1),
+            due_at=calculate_review_due_at(now, incorrect_count=1),
             last_attempt_id=attempt.id,
         )
         session.add(review_state)
@@ -718,7 +723,7 @@ async def _update_review_state(
 
     review_state.status = "active"
     review_state.incorrect_count += 1
-    review_state.due_at = _review_due_at(
+    review_state.due_at = calculate_review_due_at(
         now,
         incorrect_count=review_state.incorrect_count,
     )
@@ -727,8 +732,7 @@ async def _update_review_state(
 
 
 def _review_due_at(now: datetime, *, incorrect_count: int) -> datetime:
-    interval_index = min(incorrect_count, len(REVIEW_INTERVAL_DAYS)) - 1
-    return now + timedelta(days=REVIEW_INTERVAL_DAYS[interval_index])
+    return calculate_review_due_at(now, incorrect_count)
 
 
 def _session_response(
@@ -769,42 +773,19 @@ def _score_answer(
     submitted_answer: str,
     expected_answer: dict[str, object] | None,
 ) -> bool | None:
-    accepted_answers = _accepted_answers(expected_answer)
-    if not accepted_answers:
-        return None
-
-    normalized_submission = _normalize_answer(submitted_answer)
-    return normalized_submission in {
-        _normalize_answer(str(accepted_answer)) for accepted_answer in accepted_answers
-    }
+    return check_answer(submitted_answer, expected_answer)
 
 
 def _accepted_answers(expected_answer: dict[str, object] | None) -> list[object]:
-    if expected_answer is None:
-        return []
-
-    for key in ("accepted_answers", "correct_answers", "answers"):
-        value = expected_answer.get(key)
-        if isinstance(value, list):
-            return value
-
-    for key in ("answer", "text", "value"):
-        value = expected_answer.get(key)
-        if value is not None:
-            return [value]
-
-    return []
+    return list(extract_accepted_answers(expected_answer))
 
 
 def _expected_answer_text(expected_answer: dict[str, object] | None) -> str:
-    accepted_answers = _accepted_answers(expected_answer)
-    if not accepted_answers:
-        return ""
-    return ", ".join(str(answer) for answer in accepted_answers)
+    return expected_answer_text(expected_answer)
 
 
 def _normalize_answer(answer: str) -> str:
-    return " ".join(answer.casefold().strip().split())
+    return normalize_answer(answer)
 
 
 def _accuracy(correct_answers: int, answer_count: int) -> float:

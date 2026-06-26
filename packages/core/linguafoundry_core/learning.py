@@ -308,9 +308,7 @@ class LearningSessionManager:
         if exercise is None:
             raise ValueError("Cannot submit an answer to a completed session.")
 
-        correct = _normalize(answer) in {
-            _normalize(expected_answer) for expected_answer in exercise.correct_answers
-        }
+        correct = check_answer(answer, exercise.correct_answers)
         next_answered_count = session.answered_count + 1
         next_correct_count = session.correct_count + int(correct)
         next_index = session.current_index + 1
@@ -417,9 +415,7 @@ class LearningSessionManager:
 
         review_item = self._review_store.get(review_item_id)
         exercise = review_item.exercise
-        correct = _normalize(answer) in {
-            _normalize(expected_answer) for expected_answer in exercise.correct_answers
-        }
+        correct = check_answer(answer, exercise.correct_answers)
         reviewed_at = self._now()
         incorrect_count = review_item.incorrect_count + (0 if correct else 1)
         updated_review_item = replace(
@@ -491,5 +487,54 @@ def calculate_review_due_at(
     return reviewed_at + timedelta(days=REVIEW_INTERVAL_DAYS[interval_index])
 
 
-def _normalize(answer: str) -> str:
+def check_answer(submitted_answer: str, accepted_answers: object) -> bool | None:
+    """Return whether a submitted answer matches configured accepted answers.
+
+    ``accepted_answers`` may be the answer payload used by API exercises or a
+    direct iterable of accepted answer values.
+    """
+
+    answers = extract_accepted_answers(accepted_answers)
+    if not answers:
+        return None
+
+    normalized_submission = normalize_answer(submitted_answer)
+    return normalized_submission in {
+        normalize_answer(str(accepted_answer)) for accepted_answer in answers
+    }
+
+
+def extract_accepted_answers(answer_payload: object) -> tuple[object, ...]:
+    """Extract accepted answer values from known exercise answer shapes."""
+
+    if answer_payload is None:
+        return ()
+    if isinstance(answer_payload, dict):
+        for key in ("accepted_answers", "correct_answers", "answers"):
+            value = answer_payload.get(key)
+            if isinstance(value, list | tuple):
+                return tuple(value)
+
+        for key in ("answer", "text", "value"):
+            value = answer_payload.get(key)
+            if value is not None:
+                return (value,)
+
+        return ()
+    if isinstance(answer_payload, str):
+        return (answer_payload,)
+
+    try:
+        return tuple(answer_payload)
+    except TypeError:
+        return (answer_payload,)
+
+
+def expected_answer_text(answer_payload: object) -> str:
+    """Return a display-friendly accepted answer string."""
+
+    return ", ".join(str(answer) for answer in extract_accepted_answers(answer_payload))
+
+
+def normalize_answer(answer: str) -> str:
     return " ".join(answer.casefold().strip().split())
