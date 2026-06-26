@@ -6,10 +6,12 @@ Telegram-facing entrypoint for the Stage 1 MVP.
 
 The bot supports the API-backed MVP Telegram flow:
 
-- `/start` verifies API reachability.
+- `/start` verifies API reachability and resumes an active lesson when one
+  exists.
 - `/lessons` lists published lessons from the backend API.
 - `/lesson <lesson-slug-or-id>` starts a lesson session through the API and
   displays the first exercise.
+- `/resume` restores the latest active lesson session from the backend API.
 - Plain text messages are submitted as answers to the active API session, then
   the bot returns the result and advances until the lesson is complete.
 - `/review`, `/mistakes`, and `/repeat_errors` show missed exercises from the

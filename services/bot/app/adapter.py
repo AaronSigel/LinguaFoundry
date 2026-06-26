@@ -18,6 +18,7 @@ HELP_TEXT = (
     "/help - show available commands\n"
     "/lessons - list available lessons\n"
     "/lesson <lesson> - start a lesson\n"
+    "/resume - resume your active lesson\n"
     "/review - review missed exercises\n"
     "/progress - show your learning progress"
 )
@@ -30,7 +31,7 @@ class BotContext:
     """Dependencies available to command handlers."""
 
     api_client: ApiClient
-    chat_sessions: dict[int, str]
+    chat_sessions: dict[tuple[int, int], str]
 
 
 Handler = Callable[[IncomingMessage, BotContext], str]
@@ -62,7 +63,7 @@ class CommandRouter:
 
 
 def handle_start(message: IncomingMessage, context: BotContext) -> str:
-    """Return the greeting for /start."""
+    """Return the greeting for /start and restore an active session when possible."""
 
     try:
         context.api_client.health()
@@ -72,7 +73,18 @@ def handle_start(message: IncomingMessage, context: BotContext) -> str:
             "The learning API is not reachable yet, "
             "so practice is temporarily unavailable."
         )
-    return WELCOME_TEXT
+
+    try:
+        resume_text = _resume_active_session(message, context)
+    except ApiClientError:
+        return (
+            f"{WELCOME_TEXT}\n\n"
+            "Resume is temporarily unavailable because the learning API "
+            "cannot be reached."
+        )
+    if resume_text is None:
+        return WELCOME_TEXT
+    return f"{WELCOME_TEXT}\n\n{resume_text}"
 
 
 def handle_help(message: IncomingMessage, context: BotContext) -> str:
@@ -110,7 +122,7 @@ def handle_lesson(message: IncomingMessage, context: BotContext) -> str:
         lesson_id = _string_field(lesson, "id")
         session = context.api_client.start_session(user_id, lesson_id)
         session_id = _string_field(session, "session_id")
-        context.chat_sessions[message.chat_id] = session_id
+        context.chat_sessions[_session_key(message)] = session_id
         exercise_payload = context.api_client.current_exercise(session_id)
     except ApiClientError:
         return (
@@ -122,6 +134,23 @@ def handle_lesson(message: IncomingMessage, context: BotContext) -> str:
         f"Lesson started: {_string_field(lesson, 'title')}\n\n"
         f"{_format_current_exercise(exercise_payload, session)}"
     )
+
+
+def handle_resume(message: IncomingMessage, context: BotContext) -> str:
+    """Resume the latest active lesson session for the Telegram learner."""
+
+    try:
+        resume_text = _resume_active_session(message, context)
+    except ApiClientError:
+        return (
+            "Resume is temporarily unavailable because the learning API "
+            "cannot be reached."
+        )
+
+    if resume_text is None:
+        context.chat_sessions.pop(_session_key(message), None)
+        return "No active lesson to resume. Use /lessons to choose a lesson."
+    return resume_text
 
 
 def handle_progress(message: IncomingMessage, context: BotContext) -> str:
@@ -174,6 +203,7 @@ def create_router() -> CommandRouter:
     router.register("/help", handle_help)
     router.register("/lessons", handle_lessons)
     router.register("/lesson", handle_lesson)
+    router.register("/resume", handle_resume)
     router.register("/progress", handle_progress)
     for command in REVIEW_COMMANDS:
         router.register(command, handle_review)
@@ -183,7 +213,7 @@ def create_router() -> CommandRouter:
 def handle_text_answer(message: IncomingMessage, context: BotContext) -> str:
     """Submit a plain text answer for the active chat session."""
 
-    session_id = context.chat_sessions.get(message.chat_id)
+    session_id = context.chat_sessions.get(_session_key(message))
     if session_id is None:
         try:
             lesson_list = _format_lesson_list(context.api_client.list_lessons())
@@ -209,7 +239,7 @@ def handle_text_answer(message: IncomingMessage, context: BotContext) -> str:
 
     lines = [_format_answer_result(result)]
     if result.get("session_completed") is True:
-        context.chat_sessions.pop(message.chat_id, None)
+        context.chat_sessions.pop(_session_key(message), None)
         if isinstance(progress, dict):
             lines.append("")
             lines.append(_format_lesson_completion(progress))
@@ -267,6 +297,25 @@ def _resolve_user_id(message: IncomingMessage, context: BotContext) -> str:
     telegram_id = message.sender_id or message.chat_id
     user = context.api_client.register_telegram_user(telegram_id)
     return _string_field(user, "id")
+
+
+def _resume_active_session(
+    message: IncomingMessage,
+    context: BotContext,
+) -> str | None:
+    user_id = _resolve_user_id(message, context)
+    sessions = context.api_client.active_sessions(user_id)
+    if not sessions:
+        return None
+
+    session = sessions[0]
+    session_id = _string_field(session, "session_id")
+    context.chat_sessions[_session_key(message)] = session_id
+    exercise_payload = context.api_client.current_exercise(session_id)
+    return "Resuming your active lesson.\n\n" + _format_current_exercise(
+        exercise_payload,
+        session,
+    )
 
 
 def _format_lesson_list(lessons: list[dict[str, Any]]) -> str:
@@ -405,6 +454,10 @@ def _command_argument(text: str) -> str | None:
         return None
     argument = parts[1].strip()
     return argument or None
+
+
+def _session_key(message: IncomingMessage) -> tuple[int, int]:
+    return (message.chat_id, message.sender_id or message.chat_id)
 
 
 def _string_field(payload: dict[str, Any], key: str) -> str:
