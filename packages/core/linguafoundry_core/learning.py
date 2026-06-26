@@ -1,19 +1,25 @@
-"""Learning session flow primitives.
+"""Legacy in-memory learning session flow primitives.
 
-The core package owns lesson orchestration without depending on Telegram,
-HTTP, database clients, or language-pack storage formats.
+This module is retained for focused core tests and prototype consumers. The
+production Bot -> API -> PostgreSQL path uses the API router with durable
+database models plus the shared answer and review-scheduling helpers.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Callable
 from uuid import uuid4
 
-
-REVIEW_INTERVAL_DAYS = (1, 3, 7, 14)
+from linguafoundry_core.answers import (
+    check_answer,
+    expected_answer_text as expected_answer_text,
+    extract_accepted_answers as extract_accepted_answers,
+    normalize_answer as normalize_answer,
+)
+from linguafoundry_core.review_schedule import calculate_review_due_at
 
 
 def utc_now() -> datetime:
@@ -471,70 +477,3 @@ class LearningSessionManager:
         else:
             self._review_store.save(review_item)
         return review_item
-
-
-def calculate_review_due_at(
-    reviewed_at: datetime, incorrect_count: int = 1
-) -> datetime:
-    """Calculate the next lightweight SRS review timestamp."""
-
-    if reviewed_at.tzinfo is None:
-        raise ValueError("reviewed_at must be timezone-aware.")
-    if incorrect_count < 1:
-        raise ValueError("incorrect_count must be positive.")
-
-    interval_index = min(incorrect_count - 1, len(REVIEW_INTERVAL_DAYS) - 1)
-    return reviewed_at + timedelta(days=REVIEW_INTERVAL_DAYS[interval_index])
-
-
-def check_answer(submitted_answer: str, accepted_answers: object) -> bool | None:
-    """Return whether a submitted answer matches configured accepted answers.
-
-    ``accepted_answers`` may be the answer payload used by API exercises or a
-    direct iterable of accepted answer values.
-    """
-
-    answers = extract_accepted_answers(accepted_answers)
-    if not answers:
-        return None
-
-    normalized_submission = normalize_answer(submitted_answer)
-    return normalized_submission in {
-        normalize_answer(str(accepted_answer)) for accepted_answer in answers
-    }
-
-
-def extract_accepted_answers(answer_payload: object) -> tuple[object, ...]:
-    """Extract accepted answer values from known exercise answer shapes."""
-
-    if answer_payload is None:
-        return ()
-    if isinstance(answer_payload, dict):
-        for key in ("accepted_answers", "correct_answers", "answers"):
-            value = answer_payload.get(key)
-            if isinstance(value, list | tuple):
-                return tuple(value)
-
-        for key in ("answer", "text", "value"):
-            value = answer_payload.get(key)
-            if value is not None:
-                return (value,)
-
-        return ()
-    if isinstance(answer_payload, str):
-        return (answer_payload,)
-
-    try:
-        return tuple(answer_payload)
-    except TypeError:
-        return (answer_payload,)
-
-
-def expected_answer_text(answer_payload: object) -> str:
-    """Return a display-friendly accepted answer string."""
-
-    return ", ".join(str(answer) for answer in extract_accepted_answers(answer_payload))
-
-
-def normalize_answer(answer: str) -> str:
-    return " ".join(answer.casefold().strip().split())
