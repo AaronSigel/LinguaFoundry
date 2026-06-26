@@ -124,14 +124,17 @@ def test_telegram_update_to_postgresql_to_telegram_response(monkeypatch) -> None
             "1. hola\n"
             "2. adios",
         )
-        completion_messages = [
-            (chat_id, text)
-            for chat_id, text in telegram_client.sent_messages
-            if "Lesson complete: 2/2 exercises answered." in text
-        ]
-        assert completion_messages
-        completion_chat_id, _completion_text = completion_messages[-1]
-        assert completion_chat_id == 2001
+        assert telegram_client.sent_messages[1] == (
+            2001,
+            "Correct.\n\nExercise 2/2\nTranslate: goodbye",
+        )
+        assert telegram_client.sent_messages[2] == (
+            2001,
+            "Incorrect.\n\n"
+            "Lesson complete: 2/2 exercises answered.\n"
+            "Use /lessons to choose another lesson.",
+        )
+        assert bot.context.chat_sessions == {}
         asyncio.run(_assert_telegram_workflow_persisted(engine))
     finally:
         if "engine" in locals():
@@ -444,25 +447,63 @@ async def _assert_telegram_workflow_persisted(engine) -> None:
             .scalars()
             .all()
         )
+        lesson = await session.scalar(select(Lesson))
+        exercises = (
+            (
+                await session.execute(
+                    select(Exercise).join(Lesson).order_by(Exercise.position)
+                )
+            )
+            .scalars()
+            .all()
+        )
         user = await session.scalar(select(User))
         persisted_session = await session.scalar(select(LearningSession))
         progress = await session.scalar(select(Progress))
         review_state = await session.scalar(select(ReviewState))
+        user_count = await session.scalar(select(func.count(User.id)))
+        session_count = await session.scalar(select(func.count(LearningSession.id)))
+        progress_count = await session.scalar(select(func.count(Progress.id)))
+        review_state_count = await session.scalar(select(func.count(ReviewState.id)))
 
     assert user is not None
     assert user.telegram_id == 1001
+    assert user_count == 1
+    assert lesson is not None
+    assert lesson.slug == "hello-and-goodbye"
+    assert lesson.language_code == "es"
+    assert [exercise.slug for exercise in exercises] == [
+        "choose-hello",
+        "translate-goodbye",
+    ]
     assert [attempt.answer for attempt in attempts] == [
         {"answer": "hola"},
         {"answer": "__wrong_bot_answer__"},
     ]
     assert [attempt.is_correct for attempt in attempts] == [True, False]
+    assert [attempt.user_id for attempt in attempts] == [user.id, user.id]
+    assert [attempt.exercise_id for attempt in attempts] == [
+        exercise.id for exercise in exercises
+    ]
     assert persisted_session is not None
+    assert session_count == 1
+    assert persisted_session.user_id == user.id
+    assert persisted_session.lesson_id == lesson.id
     assert persisted_session.status == "completed"
     assert persisted_session.current_exercise_index == 2
     assert progress is not None
+    assert progress_count == 1
+    assert progress.user_id == user.id
+    assert progress.lesson_id == lesson.id
     assert progress.status == "completed"
     assert progress.completed_exercises == 2
     assert review_state is not None
+    assert review_state_count == 1
+    assert review_state.user_id == user.id
+    assert review_state.lesson_id == lesson.id
+    assert review_state.exercise_id == exercises[1].id
+    assert review_state.learning_session_id == persisted_session.id
+    assert review_state.last_attempt_id == attempts[1].id
     assert review_state.status == "active"
     assert review_state.incorrect_count == 1
 
