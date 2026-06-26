@@ -111,7 +111,11 @@ def test_telegram_update_to_postgresql_to_telegram_response(monkeypatch) -> None
             api_client=ApiClient("http://testserver"),
         )
 
-        assert bot.process_update(_telegram_text_update("/lesson hello-and-goodbye"))
+        assert bot.process_update(
+            _telegram_text_update(
+                "/lesson es-a1-greetings-a1-greetings-hello-and-goodbye"
+            )
+        )
         assert bot.process_update(_telegram_text_update("1"))
         assert bot.process_update(_telegram_text_update("__wrong_bot_answer__"))
 
@@ -470,7 +474,7 @@ async def _assert_telegram_workflow_persisted(engine) -> None:
     assert user.telegram_id == 1001
     assert user_count == 1
     assert lesson is not None
-    assert lesson.slug == "hello-and-goodbye"
+    assert lesson.slug == "es-a1-greetings-a1-greetings-hello-and-goodbye"
     assert lesson.language_code == "es"
     assert [exercise.slug for exercise in exercises] == [
         "choose-hello",
