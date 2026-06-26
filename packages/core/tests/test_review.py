@@ -7,8 +7,8 @@ from linguafoundry_core import (
     AttemptResult,
     Exercise,
     ExerciseType,
-    build_mistake_review_queue,
 )
+from linguafoundry_core.review import build_mistake_review_queue
 
 
 def test_mistake_review_queue_returns_latest_uncorrected_misses() -> None:

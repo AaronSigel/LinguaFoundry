@@ -1,29 +1,29 @@
 # Core Package
 
-Owns SRS and domain logic for LinguaFoundry.
+Owns shared domain entities and helper logic for LinguaFoundry.
 
-## Learning Sessions
+## Production Shared Helpers
 
-`linguafoundry_core.learning` provides the Telegram-independent lesson flow:
+The production path is `Bot -> API -> PostgreSQL`. The bot talks to the API;
+the API owns durable learning-session, progress, attempt, and review-state
+updates in PostgreSQL.
 
-- start a lesson with `LearningSessionManager.start_lesson`
-- fetch the current exercise with `get_current_exercise`
-- submit and check an answer with `submit_answer`
-- finish a lesson with `complete_lesson`
+The core package exposes only shared entities and stateless helpers needed by
+that path:
 
-Incorrect answers create lightweight review items in the manager's review store.
-Use `get_due_review_items` when callers need scheduling metadata, or
-`get_due_review_exercises` when callers only need exercises ready for repeat
-practice. Callers can run due items through a separate review workflow with
-`start_review_session`, `get_current_review_exercise`, and
-`submit_review_answer`. Review answers advance the review session and recalculate
-the item's next `due_at` timestamp. Review dates are calculated by
-`calculate_review_due_at` with simple 1, 3, 7, and 14 day intervals.
-Answer checking is shared through `check_answer`, `extract_accepted_answers`,
-`expected_answer_text`, and `normalize_answer`.
+- `linguafoundry_core.answers` for answer extraction, display, normalization,
+  and scoring.
+- `linguafoundry_core.review_schedule` for lightweight review due-date
+  calculation.
+- `linguafoundry_core.models` for framework-independent domain entities.
 
-The initial implementation uses plain dataclasses and an in-memory store so
-service layers can adapt it to bot, API, or durable persistence concerns later.
+## Legacy Prototype Modules
+
+`linguafoundry_core.learning` and `linguafoundry_core.review` contain earlier
+in-memory lesson and mistake-review workflows. They are intentionally not
+exported from the package root because they are outside the production
+Bot -> API -> PostgreSQL path. Tests that cover those prototypes import the
+modules directly.
 
 ## Verification
 

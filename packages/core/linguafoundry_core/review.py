@@ -1,4 +1,8 @@
-"""SRS-lite review selection for missed exercises."""
+"""Legacy in-memory review selection for missed exercises.
+
+The production API builds review queues from durable ``ReviewState`` rows.
+This module remains available for isolated core tests and prototype callers.
+"""
 
 from __future__ import annotations
 

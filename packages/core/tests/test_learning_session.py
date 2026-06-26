@@ -9,10 +9,14 @@ from linguafoundry_core.learning import (
     ReviewSessionNotFoundError,
     SessionNotFoundError,
     SessionStatus,
-    calculate_review_due_at,
+)
+from linguafoundry_core.answers import (
     check_answer,
     expected_answer_text,
     extract_accepted_answers,
+)
+from linguafoundry_core.review_schedule import (
+    calculate_review_due_at,
 )
 
 
