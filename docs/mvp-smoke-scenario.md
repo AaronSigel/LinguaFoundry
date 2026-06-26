@@ -7,7 +7,8 @@ Telegram-first MVP surface and API contract:
 1. Register a learner.
 1. Start and complete a lesson.
 1. Submit at least one incorrect answer.
-1. Repeat or review the mistake.
+1. Resume an in-progress lesson.
+1. Repeat or review a due mistake.
 1. View learner progress.
 
 ## Preconditions
@@ -102,6 +103,29 @@ Use the API path when validating the backend contract without Telegram:
    exercise has accepted answers configured. The returned progress advances by
    one exercise.
 
+1. Confirm the in-progress session can be resumed.
+
+   ```shell
+   curl -s "${API_AUTH_HEADER[@]}" http://localhost:8000/learning/users/"$USER_ID"/sessions/active
+   ```
+
+   Expected result: HTTP `200` with a list containing `SESSION_ID` while the
+   lesson still has remaining exercises. The session includes the durable
+   cursor fields `completed_exercises`, `total_exercises`,
+   `language_pack_id`, and `language_pack_version`.
+
+   Starting the same lesson again before completion should reuse that active
+   session instead of creating a second cursor:
+
+   ```shell
+   curl -s -X POST http://localhost:8000/learning/sessions "${API_AUTH_HEADER[@]}" \
+     -H 'Content-Type: application/json' \
+     -d '{"user_id":"'"$USER_ID"'","lesson_id":"'"$LESSON_ID"'"}'
+   ```
+
+   Expected result: HTTP `201` with the same `session_id` and the current
+   `completed_exercises` value.
+
 1. Continue submitting answers until `session_completed` is `true`.
 
    Expected result: the final answer response includes progress with `status`
@@ -131,8 +155,24 @@ Use the API path when validating the backend contract without Telegram:
    curl -s "${API_AUTH_HEADER[@]}" http://localhost:8000/learning/users/"$USER_ID"/review
    ```
 
+   Expected result: HTTP `200` with a `cards` list. Newly missed exercises are
+   tracked as active repetitions immediately, but review cards appear only when
+   their `due_at` time has passed. In normal smoke runs this list may be empty
+   right after the lesson; use `progress/stats` to confirm
+   `active_repetitions` is greater than `0`.
+
+   To verify the due-review display in a disposable local database, move the
+   review row into the past and call the endpoint again:
+
+   ```shell
+   docker compose exec db psql -U linguafoundry -d linguafoundry \
+     -c "UPDATE review_states SET due_at = now() - interval '1 minute';"
+   curl -s "${API_AUTH_HEADER[@]}" http://localhost:8000/learning/users/"$USER_ID"/review
+   ```
+
    Expected result: HTTP `200` with a `cards` list containing the intentionally
-   missed exercise until a later correct attempt clears it.
+   missed exercise, its prompt, expected answer text, and incorrect attempt
+   count.
 
 ## Telegram Smoke Path
 
@@ -142,13 +182,14 @@ Use the Telegram path when validating the learner-facing MVP:
 1. List lessons with `/lessons`.
 1. Select or start a lesson with `/lesson <lesson-slug-or-id>`.
 1. Answer one exercise incorrectly.
+1. Send `/resume` before finishing if the lesson has remaining exercises.
 1. Finish the lesson.
 1. Send `/review`, `/mistakes`, or `/repeat_errors`.
 1. Send `/progress`.
 
 Expected result: the bot lists available lessons, advances through the lesson,
-shows incorrect-answer feedback, exposes a repeat/review queue for mistakes,
-and returns aggregate learner progress.
+resumes the latest active lesson, shows incorrect-answer feedback, exposes due
+repeat/review cards for mistakes, and returns aggregate learner progress.
 
 ## Automated Coverage
 
