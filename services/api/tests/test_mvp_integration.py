@@ -27,7 +27,11 @@ from services.api.app.db.models import (
     ReviewState,
     User,
 )
-from services.api.app.lang_packs import import_language_pack, load_language_pack
+from services.api.app.lang_packs import (
+    import_language_pack,
+    load_language_pack,
+    stable_lesson_id_for,
+)
 from services.api.app.main import create_app
 from services.bot.app import api_client as bot_api_client_module
 from services.bot.app.adapter import TelegramBotAdapter
@@ -35,7 +39,12 @@ from services.bot.app.api_client import ApiClient
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 LANG_PACK_PATH = REPOSITORY_ROOT / "packages/lang-packs/examples/es-a1-greetings.json"
-IMPORTED_LESSON_SLUG = "es-a1-greetings-a1-greetings-hello-and-goodbye"
+IMPORTED_LESSON_SLUG = stable_lesson_id_for(
+    pack_id="es-a1-greetings",
+    level_id="a1",
+    topic_id="greetings",
+    lesson_id="hello-and-goodbye",
+)
 
 
 pytestmark = pytest.mark.integration
