@@ -373,6 +373,62 @@ def test_text_answer_renders_follow_up_multiple_choice_options() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("answer", "expected_option_id"),
+    [
+        ("1", "hello"),
+        ("2", "goodbye"),
+        ("hola", "hello"),
+        (" Adios ", "goodbye"),
+    ],
+)
+def test_multiple_choice_answer_is_submitted_as_option_id(
+    answer: str,
+    expected_option_id: str,
+) -> None:
+    telegram = RecordingTelegramClient()
+    api_client = MultipleChoiceApiClient()
+    bot = TelegramBotAdapter(telegram, api_client)
+
+    bot.process_update(
+        {
+            "message": {
+                "chat": {"id": 123},
+                "from": {"id": 456},
+                "text": "/lesson intro",
+            }
+        }
+    )
+    handled = bot.process_update({"message": {"chat": {"id": 123}, "text": answer}})
+
+    assert handled is True
+    assert api_client.answers == [("session-1", expected_option_id)]
+
+
+def test_large_numeric_multiple_choice_answer_is_submitted_verbatim() -> None:
+    telegram = RecordingTelegramClient()
+    api_client = MultipleChoiceApiClient()
+    bot = TelegramBotAdapter(telegram, api_client)
+
+    bot.process_update(
+        {
+            "message": {
+                "chat": {"id": 123},
+                "from": {"id": 456},
+                "text": "/lesson intro",
+            }
+        }
+    )
+    oversized_numeric_answer = "9" * 5000
+
+    handled = bot.process_update(
+        {"message": {"chat": {"id": 123}, "text": oversized_numeric_answer}}
+    )
+
+    assert handled is True
+    assert api_client.answers == [("session-1", oversized_numeric_answer)]
+
+
 def test_text_answer_after_completed_lesson_requires_new_lesson() -> None:
     telegram = RecordingTelegramClient()
     bot = TelegramBotAdapter(telegram, HealthyApiClient())
