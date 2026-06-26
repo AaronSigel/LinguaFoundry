@@ -57,6 +57,35 @@ Language metadata includes:
 - Free-text and translation exercises should put accepted learner responses in
   `answers[].value`; `normalized_value` can be supplied for matching.
 
+## Published Pack Update Policy
+
+Published language packs are append-only by content identity. Learner progress,
+attempts, review state, and active sessions are tied to the imported lesson
+record for the `pack_id` and `content_version` that the learner used.
+
+Use this policy when updating a pack that has already been imported or released:
+
+- Keep `pack_id` stable for the same product or curriculum line.
+- Increment `content_version` for any learner-visible lesson, exercise, answer,
+  explanation, ordering, or metadata change.
+- Keep level, topic, lesson, and exercise IDs stable when the item represents
+  the same learning content. This lets the importer create a new versioned copy
+  without breaking historical references.
+- Do not reuse a removed ID for different content in a later version. Create a
+  new slug instead.
+- Do not edit a previously published `content_version` in place, except for
+  unreleased local corrections before import. Re-importing the same
+  `content_version` updates that version's rows and can change what learners on
+  that version see.
+- Remove or replace content only by publishing a new `content_version`; the old
+  version must remain available until all active sessions and historical
+  progress can safely reference it.
+
+The importer stores each lesson under `pack_id`, `content_version`, and the
+stable lesson slug. This creates distinct database records for new content
+versions, preserving user history on earlier versions while allowing updated
+content to be published.
+
 Supported exercise types are:
 
 - `flashcard`
