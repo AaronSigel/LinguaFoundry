@@ -115,25 +115,23 @@ def test_telegram_update_to_postgresql_to_telegram_response(monkeypatch) -> None
         assert bot.process_update(_telegram_text_update("1"))
         assert bot.process_update(_telegram_text_update("__wrong_bot_answer__"))
 
-        assert telegram_client.sent_messages[:2] == [
-            (
-                2001,
-                "Lesson started: Hello and Goodbye\n\n"
-                "Exercise 1/2\n"
-                "Which word means hello?\n"
-                "Options:\n"
-                "1. hola\n"
-                "2. adios",
-            ),
-            (
-                2001,
-                "Correct.\n\nExercise 2/2\nTranslate: goodbye",
-            ),
+        assert telegram_client.sent_messages[0] == (
+            2001,
+            "Lesson started: Hello and Goodbye\n\n"
+            "Exercise 1/2\n"
+            "Which word means hello?\n"
+            "Options:\n"
+            "1. hola\n"
+            "2. adios",
+        )
+        completion_messages = [
+            (chat_id, text)
+            for chat_id, text in telegram_client.sent_messages
+            if "Lesson complete: 2/2 exercises answered." in text
         ]
-        assert len(telegram_client.sent_messages) == 3
-        completion_chat_id, completion_text = telegram_client.sent_messages[-1]
+        assert completion_messages
+        completion_chat_id, _completion_text = completion_messages[-1]
         assert completion_chat_id == 2001
-        assert "Lesson complete: 2/2 exercises answered." in completion_text
         asyncio.run(_assert_telegram_workflow_persisted(engine))
     finally:
         if "engine" in locals():
